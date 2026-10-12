@@ -1,6 +1,6 @@
 # Localization parity with Microsoft Word
 
-> **Last reviewed:** 2026-10-13 · **Last updated:** 2026-10-13 · **Change:** minor (embedded Rust Finnish proofing) · **Target:** Microsoft Word (Microsoft 365) for Mac 16.113.4
+> **Last reviewed:** 2026-10-13 · **Last updated:** 2026-10-13 · **Change:** minor (Apple Silicon Finnish proofing verification) · **Target:** Microsoft Word (Microsoft 365) for Mac 16.113.4
 
 Interface languages, script support and proofing per language. How translation works (catalog
 format, adding a language, clean-room rule): `crates/ui-egui/src/i18n/mod.rs`.
@@ -87,6 +87,11 @@ documents in Polish (`pl-PL`).
 | Finnish (`fi`, any region; desktop and WASM) | embedded Voikko dictionary | Voikko | Voikko | Voikko insertion-only breaks |
 | Any other | — (no marks) | — | — | the English patterns, as before |
 
+Apple Silicon: the ARM64 ad-hoc package was exercised on macOS 26.6.2 with Rust
+1.95.0, including offline spelling, grammar, hyphenation, mixed-language formatting
+and DOCX reopening. Automated and screenshot checks passed; personal acceptance
+and Windows runtime testing remain pending. See [Mac results](voikko.md#apple-silicon-macos-2026-10-13).
+
 Measured with the SJP.PL dictionary: every one of the ~4.5 million forms an independent expansion of its affix file
 produces is accepted, and 200,000 one-edit mutations that aren't words are all rejected; a check
 takes ~1 µs, a suggestion list 1–35 ms (release build). Not yet: other languages' dictionaries,
@@ -159,6 +164,7 @@ WordCraft keeps 2,54 cm).
 
 | Date | Change | Summary |
 |---|---|---|
+| 2026-10-13 | minor | Native Apple Silicon Finnish proofing and ad-hoc package verified, including offline app automation and screenshots; personal acceptance and Windows runtime checks remain pending |
 | 2026-10-13 | minor | Replaced native Voikko with pinned Rust crates and embedded dictionary; unsafe exception removed, Finnish tests enabled by default; Windows/Apple Silicon runtime checks pending |
 | 2026-10-12 | minor | Updated to 0.6.1; Finnish Voikko integrated with upstream proofing languages, preferences and language menu |
 | 2026-10-11 | minor | Turkish interface catalog completed (2,325 entries, the same keys as Russian): equation gallery, built-in style names, watermarks, paper sizes and preview tiles; the interface audit checks Turkish too (#774) |

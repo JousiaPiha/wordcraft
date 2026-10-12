@@ -1,5 +1,7 @@
 # Finnish proofing with Voikko
 
+> **Last reviewed:** 2026-10-13 · **Last updated:** 2026-10-13 · **Change:** minor (Apple Silicon package verification)
+
 WordCraft includes Finnish spelling, correction suggestions, grammar checking and
 hyphenation through the Rust implementation of Voikko. The engine and Finnish
 dictionary are built into the application, including WebAssembly builds. There
@@ -119,4 +121,87 @@ a browser UI test. Asset attribution (59 files) and layering (21 crates) pass.
 The full `cargo +1.95.0 xtask ci` command passes all six gates: formatting,
 workspace Clippy, tests, asset attribution, dependency layering and WASM builds.
 Small, behavior-preserving cleanups for Rust 1.95 Clippy are included in a separate
-commit. Windows x86_64 and Apple Silicon execution remains pending.
+commit. Windows x86_64 execution remains pending. Apple Silicon results follow;
+personal acceptance on both desktop platforms remains pending.
+
+### Apple Silicon macOS (2026-10-13)
+
+Tested source and packaged binaries: `663f3a07d7392eefde2a80895ce0f88ab0910225`
+on `feat/voikko-finnish`, initially a clean checkout. Machine: Apple M4 Pro,
+macOS 26.6.2 (25G83), native `arm64`, `sysctl.proc_translated=0` (no Rosetta).
+Rust: `rustc 1.95.0 (59807616e 2026-04-14)`, host
+`aarch64-apple-darwin`; the compiler itself is ARM64. Installed the minimal
+1.95.0 toolchain, rustfmt, Clippy and `wasm32-unknown-unknown`, and set a local
+rustup directory override. Existing Xcode Command Line Tools were sufficient.
+No system Voikko package or dictionary was installed.
+
+The local `plan/` files and referenced `../../craftrules` checkout were absent.
+The public-roadmap fallback was read. Attempts to read the shared craftrules
+instructions through the public URL and authenticated GitHub API returned 404;
+the repository's own instructions remained applicable.
+
+**Automated checks:** the requested locked test command passed 800 tests;
+the native Voikko `smoke` example passed. `cargo xtask ci` passed all six gates:
+formatting, strict workspace Clippy, tests (1,944 passed, 0 failed, 2 ignored),
+asset attribution (59 files), layering (21 crates), and WASM (17 crates).
+WASM checking emitted existing unused-mutability/dead-code warnings; it completed
+successfully. This is a WASM compile check, not a Mac browser runtime test.
+No macOS-specific source or packaging fixes were required, and the dependency
+pin and lockfile are unchanged.
+
+Built with `MACOS_SIGN_IDENTITY=- bash packaging/macos/package.sh --arch aarch64`.
+The app and CLI contain only `arm64`; strict code-signature verification passed
+for the app, CLI and DMG, and `hdiutil verify` passed. Signing is ad hoc, with no
+notarization. Dynamic dependencies contain no libvoikko or Homebrew library.
+The mounted DMG and CLI ZIP both contain byte-identical copies of `NOTICE`,
+`ATTRIBUTION.md`, and `voikko/{README.md,CONTRIBUTORS.txt,COPYING-dictionary.txt,
+LICENSE-libvoikko.txt}` from the source checkout.
+
+**Packaged-app checks:** ran the executable inside the read-only mounted DMG,
+with `WORDCRAFT_NO_PREFS=1`. An additional per-process `sandbox-exec` policy
+denied external networking while allowing the loopback control channel. A curl
+probe under that policy failed to connect externally; the app initialized
+`voikko-rust` and completed the checks below. The Mac's network and security
+settings were not changed. All inputs used the documented control channel,
+without global keystrokes. Screenshots captured only WordCraft's window and were
+opened for visual inspection.
+
+| Checklist item | Automated packaged-app result | Visual result |
+| --- | --- | --- |
+| Finnish default and availability | `fi-FI`, `voikko-rust`, available | Status bar displays Finnish |
+| `Äiti ja koirra.` | Only spelling issue is `koirra`; `koira` offered; correction and undo pass, including clicking the visible context-menu suggestion | Red underline only on `koirra`; suggestion menu displays `koira` |
+| `Äiti on on kotona.` | Grammar range is UTF-8 bytes 6–11; selection is exactly `on on`; correction gives `Äiti on kotona.` | Selection and grammar underline cover `on on`, not `Äiti` |
+| `Äiti on kotona.` | No proofing issues | No spelling or grammar marks |
+| Automatic hyphenation | Enabled in a narrow text area with repeated `kansantalous tietokone talossanikinko` | Turning it on adds Finnish line-end breaks, including `kansan-talous` and `tieto-kone` |
+| Manual hyphenation | `kansantalous` points `[3,6,8]`; clicking Yes at 6 inserts U+00AD; survives DOCX reopen | Dialog shows `kan-san-ta-lous`; reopened page breaks at `kansan-talous` |
+| Mixed languages and formatting | English sentence + Finnish sentence; bold `irr` inside `koirra`; whole word remains one Finnish spelling issue | English sentence unmarked; whole Finnish misspelling underlined |
+| DOCX save/reopen | `en-US`/`fi-FI` run languages, bold formatting, issue range, suggestions, correction and undo preserved | Reopened text and spelling mark displayed correctly |
+| Embedded dictionaries offline | All preceding app checks passed with external networking denied | Same proofing marks and dialogs displayed offline |
+
+After correcting `Äiti ja koirra.` to `Äiti ja koira.`, the spelling mark clears,
+but Voikko reports a missing-main-verb grammar warning on that sentence fragment.
+That is distinct from the clean complete-sentence test `Äiti on kotona.`.
+
+**Pending manual acceptance (not passed):** Finder drag-to-Applications and
+ordinary launch; Language-menu selection, physical typing and F7 shortcuts;
+native Finnish review of suggestion/grammar/hyphenation quality on personal
+documents; repeating normal use with networking disconnected. Windows x86_64
+runtime and packaged-app testing remain pending. These synthetic Mac checks do
+not establish wider Word parity or personal acceptance.
+
+Local outputs, relative to the checkout:
+
+- App: `target/macos-package/WordCraft.app`
+- DMG: `dist/release/wordcraft-0.6.1-macos-aarch64.dmg`
+- CLI ZIP: `dist/release/wordcraft-cli-0.6.1-macos-aarch64.zip`
+- Logs, control replies, synthetic DOCX files and window screenshots:
+  `target/voikko-macos-validation/` (gitignored).
+
+The test instance was closed and its read-only DMG unmounted after verification.
+No release or PR was published; no ongoing maintainer role is assumed.
+
+## Revision history
+
+| Date | Change | Summary |
+| --- | --- | --- |
+| 2026-10-13 | minor | Recorded native Apple Silicon build, ad-hoc package, offline app automation and visual results; personal acceptance and Windows testing pending |
