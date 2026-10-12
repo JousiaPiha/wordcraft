@@ -1,0 +1,205 @@
+//! Language-aware proofing and hyphenation.
+
+use crate::{Issue, IssueKind};
+
+/// Availability is separate from "no errors": missing dictionaries are not a
+/// successful proofing result.
+#[derive(Clone, Debug)]
+pub struct Status {
+    pub available: bool,
+    pub backend: &'static str,
+    pub reason: Option<String>,
+}
+
+fn english(language: &str) -> bool {
+    crate::ProofLang::from_tag(Some(language)) == crate::ProofLang::En
+}
+
+pub fn finnish(language: &str) -> bool {
+    crate::ProofLang::from_tag(Some(language)) == crate::ProofLang::Fi
+}
+
+pub(crate) fn is_correct_finnish(word: &str) -> bool {
+    let lower = word.to_lowercase();
+    crate::in_user_dictionary(&lower)
+        || crate::ignored_words().read().unwrap_or_else(|e| e.into_inner()).contains(&lower)
+        || backend::spell(word) != Ok(false)
+}
+
+pub(crate) fn finnish_breaks(word: &str) -> Vec<usize> {
+    backend::hyphenate(word)
+}
+
+pub fn status(language: &str) -> Status {
+    if english(language) {
+        Status { available: true, backend: "builtin-english", reason: None }
+    } else if finnish(language) {
+        let reason = backend::status().err();
+        Status { available: reason.is_none(), backend: "voikko-rust", reason }
+    } else if matches!(crate::ProofLang::from_tag(Some(language)), crate::ProofLang::Pl | crate::ProofLang::Pt) {
+        let available = if crate::ProofLang::from_tag(Some(language)) == crate::ProofLang::Pl {
+            crate::pl::has_dictionary()
+        } else {
+            crate::pt::has_dictionary()
+        };
+        Status { available, backend: "hunspell", reason: (!available).then(|| "No installed Hunspell dictionary for this language".into()) }
+    } else {
+        Status { available: false, backend: "none", reason: Some("No proofing dictionary for this language".into()) }
+    }
+}
+
+pub fn check_spelling(text: &str, language: &str) -> Vec<Issue> {
+    check_spelling_with(text, language, &crate::Options::default())
+}
+
+pub fn check_spelling_with(text: &str, language: &str, options: &crate::Options) -> Vec<Issue> {
+    if text.len() > 100_000 {
+        return Vec::new();
+    }
+    let lang = crate::ProofLang::from_tag(Some(language));
+    crate::words(text).into_iter().filter_map(|(a, b)| crate::spelling_issue(text, a, b, lang, options)).collect()
+}
+
+pub fn check_grammar(text: &str, language: &str) -> Vec<Issue> {
+    check_grammar_in_context(text, language, true, true)
+}
+
+/// A language/exclusion boundary need not be a sentence or paragraph boundary.
+pub fn check_grammar_in_context(text: &str, language: &str, sentence_start: bool, paragraph_end: bool) -> Vec<Issue> {
+    if english(language) {
+        crate::check_grammar_with_start(text, sentence_start)
+    } else if finnish(language) {
+        backend::grammar(text, sentence_start, paragraph_end)
+    } else {
+        match crate::ProofLang::from_tag(Some(language)) {
+            crate::ProofLang::Pl => crate::pl::grammar::check_with_start(text, sentence_start),
+            crate::ProofLang::Pt => crate::pt::grammar::check_with_start(text, sentence_start),
+            _ => Vec::new(),
+        }
+    }
+}
+
+pub fn suggest(word: &str, language: &str, max: usize) -> Vec<String> {
+    if english(language) {
+        crate::suggest(word, max)
+    } else if finnish(language) {
+        backend::suggest(word, max)
+    } else {
+        crate::suggest_in(word, max, crate::ProofLang::from_tag(Some(language)))
+    }
+}
+
+/// Break points are character indices, matching the existing English API.
+pub fn hyphenate(word: &str, language: &str, limits: &crate::hyphen::Limits) -> Vec<usize> {
+    if !finnish(language) {
+        let lang = crate::ProofLang::from_tag(Some(language));
+        return if lang == crate::ProofLang::Other { Vec::new() } else { crate::hyphen::hyphen_points_in(word, limits, lang) };
+    }
+    let len = word.chars().count();
+    if !finnish(language) || len < limits.min_word || (!limits.capitalized && word.chars().next().is_some_and(char::is_uppercase)) {
+        return Vec::new();
+    }
+    backend::hyphenate(word).into_iter().filter(|&i| i >= limits.after_first && len.saturating_sub(i) >= limits.before_last).collect()
+}
+
+mod backend {
+    use super::*;
+    use std::cell::RefCell;
+    use wordcraft_voikko::{Error, Voikko};
+
+    thread_local! {
+        static VOIKKO: RefCell<Result<Voikko, Error>> = RefCell::new(Voikko::new());
+    }
+
+    fn with<T>(f: impl FnOnce(&mut Voikko) -> Result<T, Error>) -> Result<T, Error> {
+        VOIKKO.with(|cell| {
+            let mut value = cell.try_borrow_mut().map_err(|_| Error("Voikko is busy".into()))?;
+            match value.as_mut() {
+                Ok(v) => f(v),
+                Err(e) => Err(e.clone()),
+            }
+        })
+    }
+    pub fn status() -> Result<(), String> {
+        with(|v| v.status()).map_err(|e| e.to_string())
+    }
+    pub fn spell(word: &str) -> Result<bool, Error> {
+        with(|v| v.spell(word))
+    }
+    pub fn suggest(word: &str, max: usize) -> Vec<String> {
+        with(|v| v.suggest(word, max)).unwrap_or_default()
+    }
+    pub fn hyphenate(word: &str) -> Vec<usize> {
+        with(|v| v.hyphenate(word)).unwrap_or_default()
+    }
+    pub fn grammar(text: &str, sentence_start: bool, paragraph_end: bool) -> Vec<Issue> {
+        let first_word = crate::words(text).first().map(|&(a, _)| a);
+        with(|v| v.grammar(text))
+            .unwrap_or_default()
+            .into_iter()
+            // Voikko's stable Finnish diagnostics: 7 = initial lowercase,
+            // 9 = missing terminating punctuation. Do not turn a formatting or
+            // language boundary into a new sentence, but keep internal errors.
+            .filter(|i| !(i.code == 7 && !sentence_start && Some(i.start) == first_word) && (i.code != 9 || paragraph_end))
+            .map(|i| Issue {
+                start: i.start,
+                end: i.end,
+                kind: IssueKind::Grammar,
+                message: i.message,
+                suggestions: i.suggestions,
+                lang: crate::ProofLang::Fi,
+            })
+            .collect()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn finnish_backend_is_built_in_and_ready() {
+        let status = status("fi-FI");
+        assert!(status.available, "{:?}", status.reason);
+        assert_eq!(status.backend, "voikko-rust");
+        assert!(suggest("koirra", "fi-FI", 6).contains(&"koira".into()));
+    }
+
+    #[test]
+    fn finnish_uses_the_upstream_language_api() {
+        let lang = crate::ProofLang::from_tag(Some("fi-FI"));
+        assert_eq!(lang, crate::ProofLang::Fi);
+        assert!(!crate::is_correct_in("koirra", lang));
+        assert!(crate::suggest_in("koirra", 6, lang).contains(&"koira".into()));
+        assert!(!crate::check_grammar_in("Äiti on on kotona.", lang).is_empty());
+        assert_eq!(crate::hyphen::hyphen_points_in("kissa", &crate::hyphen::Limits::default(), lang), vec![3]);
+        assert!(!crate::check_grammar_in("Wiem że to jest dobre.", crate::ProofLang::Pl).is_empty());
+    }
+
+    #[test]
+    fn dispatch_does_not_apply_english_to_other_languages() {
+        assert!(check_spelling("koirra", "sv-SE").is_empty());
+        assert!(!status("sv-SE").available);
+        assert_eq!(check_spelling("helo", "EN-gb"), crate::check_spelling("helo"));
+        assert!(check_grammar("a apple", "sv-SE").is_empty());
+        assert!(hyphenate("university", "sv-SE", &crate::hyphen::Limits::default()).is_empty());
+        assert_eq!(suggest("wrold", "", 3), crate::suggest("wrold", 3));
+    }
+
+    #[test]
+    fn finnish_proofing_and_limits() {
+        assert!(status("fi-FI").available);
+        assert!(check_spelling("Äiti asuu talossa.", "fi").is_empty());
+        let issues = check_spelling("Äiti ja koirra.", "fi-FI");
+        assert_eq!(issues.len(), 1);
+        assert_eq!((issues[0].start, issues[0].end), (9, 15));
+        assert!(suggest("koirra", "fi-FI", 6).contains(&"koira".into()));
+        assert!(suggest("koirra", "fi-FI", 0).is_empty());
+        assert!(!check_grammar("Äiti on on kotona.", "fi").is_empty());
+        assert_eq!(hyphenate("kissa", "fi", &crate::hyphen::Limits::default()), vec![3]);
+        let limits = crate::hyphen::Limits { before_last: 3, ..Default::default() };
+        assert!(hyphenate("kissa", "fi", &limits).is_empty());
+        crate::add_word("voikkotestisanaqwerty");
+        assert!(check_spelling("voikkotestisanaqwerty", "fi").is_empty());
+    }
+}

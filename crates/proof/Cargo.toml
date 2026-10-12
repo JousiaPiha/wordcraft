@@ -12,5 +12,7 @@ workspace = true
 log = { workspace = true }
 miniz_oxide = "0.8"
 
+wordcraft-voikko = { path = "../voikko" }
+
 [dev-dependencies]
 proptest = { workspace = true }

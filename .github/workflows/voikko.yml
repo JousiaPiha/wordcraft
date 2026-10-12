@@ -1,0 +1,41 @@
+name: Finnish proofing
+
+on:
+  pull_request:
+    paths:
+      - 'Cargo*'
+      - 'assets/voikko/**'
+      - 'crates/voikko/**'
+      - 'crates/proof/**'
+      - 'crates/layout/**'
+      - 'crates/engine/**'
+      - '.github/workflows/voikko.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  proofing:
+    name: Finnish (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        # macos-15 uses Apple Silicon; Windows and Linux runners are x86_64.
+        os: [ubuntu-24.04, windows-latest, macos-15]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+      # Deliberately no native libvoikko or dictionary installation.
+      - name: Finnish adapter, proofing, layout and editor tests
+        run: cargo test --locked -p wordcraft-voikko -p wordcraft-proof -p wordcraft-layout -p wordcraft-engine
+      - name: Offline embedded-dictionary smoke test
+        run: cargo run --locked -p wordcraft-voikko --example smoke
+      - name: Browser compatibility
+        if: runner.os == 'Linux'
+        run: cargo check --locked -p wordcraft-web --target wasm32-unknown-unknown

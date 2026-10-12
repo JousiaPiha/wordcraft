@@ -416,7 +416,7 @@ impl LanguageForm {
     pub fn read(app: &WordApp) -> LanguageForm {
         let s = &app.session;
         let here = s.typing_props();
-        let lang = here.lang.clone().or_else(|| s.doc.styles.default_chr.lang.clone()).unwrap_or_else(|| "en-US".into());
+        let lang = wordcraft_engine::cmd::review::caret_language(s);
         LanguageForm { lang, no_proof: here.no_proof.unwrap_or(false), detect: s.prefs.detect_language }
     }
 
@@ -427,7 +427,7 @@ impl LanguageForm {
 }
 
 /// A language's name in the interface language (the tag itself when we don't know it).
-fn language_name(tag: &str) -> String {
+pub(crate) fn language_name(tag: &str) -> String {
     LANGUAGES.iter().find(|(t, _)| t.eq_ignore_ascii_case(tag)).map(|(_, n)| tl!(n).to_string()).unwrap_or_else(|| tag.to_string())
 }
 
@@ -712,6 +712,7 @@ mod tests {
         a.run("review.language", f.params()).unwrap();
         let c = a.session.typing_props();
         assert_eq!((c.lang.as_deref(), c.no_proof), (Some("sr-Latn-RS"), Some(true)));
+        assert_eq!(LanguageForm::read(&a).lang, "sr-Latn-RS", "selection ending at the paragraph end retains its language");
         a.run("review.language", json!({"lang": "fr-FR", "default": true})).unwrap();
         assert_eq!(a.session.doc.styles.default_chr.lang.as_deref(), Some("fr-FR"));
         assert!(a.dialog.is_none());

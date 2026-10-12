@@ -54,7 +54,16 @@ list (author, source, license) is in ATTRIBUTION.md.
     OF THE POSSIBILITY OF SUCH DAMAGE.
 - All UI icons are drawn in code (crates/ui-egui/src/icons.rs) and are original work, MIT OR Apache-2.0.
 
-Rust dependencies (egui, eframe, vello_cpu, skrifa, harfrust, krilla, quick-xml, zip, image, …)
+Other Rust dependencies (egui, eframe, vello_cpu, skrifa, harfrust, krilla, quick-xml, zip, image, …)
 are permissively licensed (MIT/Apache-2.0/BSD/ISC/Zlib) and fetched through crates.io.
 
 No Microsoft, Adobe, Avid or Autodesk icons, images, templates or artwork are included.
+
+Finnish proofing uses the Rust corevoikko libraries by Yongseok Jang, derived
+from Voikko by Harri Pitkanen and contributors, under the MPL-1.1 option of
+their MPL-1.1 / GPL-2.0-or-later / LGPL-2.1-or-later license. Finnish dictionary
+data by the Voikko project contributors is embedded under GPL-2.0-or-later.
+These components retain their own licenses. See assets/voikko/ (in source) or
+voikko/ (in packages) for license texts, credits and pinned source information.
+Source revision: beba2cd7c0b3839b63f54c18948c4e2add318bc1
+https://github.com/yongsk0066/corevoikko/tree/beba2cd7c0b3839b63f54c18948c4e2add318bc1

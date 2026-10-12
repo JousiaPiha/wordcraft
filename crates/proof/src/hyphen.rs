@@ -110,6 +110,9 @@ fn core_breaks(core: &[char], lang: ProofLang) -> (Vec<usize>, Source) {
     if n < 2 {
         return (vec![], Source::None);
     }
+    if lang == ProofLang::Fi {
+        return (crate::language::finnish_breaks(&core.iter().collect::<String>()), Source::Rules);
+    }
     if lang == ProofLang::Pl {
         return core_breaks_pl(core);
     }
@@ -272,7 +275,7 @@ pub fn hyphen_points_in(word: &str, lim: &Limits, lang: ProofLang) -> Vec<usize>
             if n < lim.min_word.max(2) {
                 return false;
             }
-            if n > 1 && count(&upper, a, b) == n {
+            if lang != ProofLang::Fi && n > 1 && count(&upper, a, b) == n {
                 return false;
             }
             if !lim.capitalized && chars.get(a).is_some_and(|c| c.is_uppercase()) {

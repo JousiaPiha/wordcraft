@@ -17,6 +17,60 @@ fn text(s: &Session) -> String {
 }
 
 #[test]
+fn proofing_reports_unsupported_language_instead_of_success() {
+    let mut s = s();
+    run(&mut s, "text.insert", json!({"text": "koirra"}));
+    run(&mut s, "select.all", json!({}));
+    run(&mut s, "review.language", json!({"lang": "sv-SE"}));
+    assert!(s.run("review.spelling", &json!({})).is_err());
+    let status = run(&mut s, "review.proofingStatus", json!({"lang": "sv-SE"}));
+    assert_eq!(status["available"], false);
+}
+
+#[test]
+fn unsupported_language_still_allows_reviewing_english_errors() {
+    let mut d = wordcraft_doc::Document::from_text("helo koirra");
+    d.format_range(&Pos::body(0, 5), &Pos::body(0, 11), &|c| c.lang = Some("sv-SE".into())).unwrap();
+    let mut s = Session::new(d);
+    assert_eq!(run(&mut s, "review.spelling", json!({}))["text"], "helo");
+    run(&mut s, "review.applySuggestion", json!({"text": "Hello"}));
+    assert!(s.run("review.spelling", &json!({})).is_err());
+}
+
+#[test]
+fn voikko_review_corrects_finnish_and_undo_restores_it() {
+    let mut s = s();
+    run(&mut s, "text.insert", json!({"text": "Äiti ja koirra."}));
+    run(&mut s, "select.all", json!({}));
+    run(&mut s, "review.language", json!({"lang": "fi-FI"}));
+    let all = run(&mut s, "review.issues", json!({}));
+    let issue = all.as_array().unwrap().iter().find(|i| i["kind"] == "spelling").unwrap();
+    assert_eq!(issue["text"], "koirra");
+    assert!(issue["suggestions"].as_array().unwrap().contains(&json!("koira")));
+    run(&mut s, "review.spelling", json!({}));
+    run(&mut s, "review.applySuggestion", json!({"text": "koira"}));
+    assert_eq!(text(&s), "Äiti ja koira.");
+    run(&mut s, "edit.undo", json!({}));
+    assert_eq!(text(&s), "Äiti ja koirra.");
+}
+
+#[test]
+fn voikko_manual_hyphenation_returns_finnish_points() {
+    let mut d = wordcraft_doc::Document::from_text(&"ja kansantalous tietokone talossanikinko ".repeat(30));
+    d.styles.default_chr.lang = Some("fi-FI".into());
+    let mut s = Session::new(d);
+    let c = run(&mut s, "layout.manualHyphenation", json!({}));
+    assert_ne!(c["done"], true, "{c}");
+    let expected = match c["word"].as_str().unwrap() {
+        "kansantalous" => json!([3, 6, 8]),
+        "tietokone" => json!([3, 5, 7]),
+        "talossanikinko" => json!([2, 5, 7, 9, 12]),
+        other => panic!("unexpected candidate {other}"),
+    };
+    assert_eq!(c["points"], expected);
+}
+
+#[test]
 fn doc_extension_dispatches_to_docbin() {
     // Garbage bytes with a .doc name must produce an error through the Word 97-2003
     // reader — never a panic and never a silently empty document.

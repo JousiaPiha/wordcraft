@@ -1,0 +1,17 @@
+[package]
+name = "wordcraft-voikko"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Bounded Rust Finnish proofing with an embedded Voikko dictionary"
+
+[lints]
+workspace = true
+
+[dependencies]
+# Original upstream crates remain external dependencies; no ported source is vendored.
+voikko-fi = { git = "https://github.com/yongsk0066/corevoikko", rev = "beba2cd7c0b3839b63f54c18948c4e2add318bc1", features = ["handle"] }
+voikko-core = { git = "https://github.com/yongsk0066/corevoikko", rev = "beba2cd7c0b3839b63f54c18948c4e2add318bc1" }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
+proptest = { workspace = true }

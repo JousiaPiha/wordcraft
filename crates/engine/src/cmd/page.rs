@@ -194,7 +194,8 @@ fn manual_hyphenation(s: &mut Session, v: &Value) -> CmdResult {
                 {
                     continue;
                 }
-                let points = wordcraft_proof::hyphen::hyphen_points(word, &lim);
+                let lang = para.language_at(line.start);
+                let points = wordcraft_proof::hyphen::hyphen_points_in(word, &lim, wordcraft_proof::ProofLang::from_tag(Some(lang)));
                 // The room left at the end of the line above, and the width of each first part.
                 let room = prev.right - prev.end_x();
                 let hyphen_w = para

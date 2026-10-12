@@ -2355,6 +2355,17 @@ fn resolve_tab(pl: &mut ParaLayout, pending: &mut Option<(usize, TabStop, f32)>,
 }
 
 impl ParaLayout {
+    /// Effective language from the logically ordered clusters. Indexed lookup
+    /// avoids rescanning the paragraph for every automatically hyphenated word.
+    pub fn language_at(&self, offset: usize) -> &str {
+        let at = self.clusters.partition_point(|c| c.end <= offset);
+        self.clusters
+            .get(at)
+            .filter(|c| c.start <= offset)
+            .and_then(|c| self.styles.get(c.style as usize))
+            .and_then(|s| s.rc.lang.as_deref())
+            .unwrap_or("en-US")
+    }
     /// x of byte offset `off` within line `li` (clamped to the line).
     pub fn x_of(&self, li: usize, off: usize) -> Option<f32> {
         let l = self.lines.get(li)?;
@@ -2489,7 +2500,11 @@ pub struct ProofRun {
 
 impl ProofRun {
     fn of(range: std::ops::Range<usize>, rc: &ResolvedChar) -> ProofRun {
-        ProofRun { range, lang: wordcraft_proof::ProofLang::from_tag(rc.lang.as_deref()), skip: rc.no_proof || rc.hidden || rc.link.is_some() }
+        ProofRun {
+            range,
+            lang: wordcraft_proof::ProofLang::from_tag(rc.lang.as_deref()),
+            skip: rc.no_proof || rc.hidden || rc.link.is_some() || rc.del.is_some(),
+        }
     }
 }
 
@@ -2512,6 +2527,9 @@ fn lang_at(runs: &[ProofRun], off: usize) -> wordcraft_proof::ProofLang {
 pub fn paragraph_issues(p: &Paragraph, runs: &[ProofRun], spelling: &wordcraft_proof::Options, grammar: bool) -> Vec<wordcraft_proof::Issue> {
     if p.text.trim().is_empty() || p.text.len() > 100_000 {
         return Vec::new();
+    }
+    if runs.iter().any(|r| r.lang == wordcraft_proof::ProofLang::Fi) {
+        return crate::proof::issues_for_runs(p, runs, spelling, grammar);
     }
     let text = proof_text(p);
     let spans: Vec<(std::ops::Range<usize>, wordcraft_proof::ProofLang)> = runs.iter().map(|r| (r.range.clone(), r.lang)).collect();

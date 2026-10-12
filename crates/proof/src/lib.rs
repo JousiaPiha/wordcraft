@@ -32,6 +32,7 @@ pub mod dict;
 pub mod hunspell;
 pub mod hyphen;
 pub mod lang;
+pub mod language;
 pub mod patterns;
 pub mod pl;
 pub mod pt;
@@ -513,6 +514,7 @@ pub fn is_correct_in(word: &str, lang: ProofLang) -> bool {
 pub fn is_correct_in_with(word: &str, lang: ProofLang, opts: &Options) -> bool {
     match lang {
         ProofLang::En => is_correct_with(word, opts),
+        ProofLang::Fi => accepted_by_options(word, opts) || language::is_correct_finnish(word),
         ProofLang::Pl => accepted_by_options(word, opts) || pl::is_correct(word),
         ProofLang::Pt => accepted_by_options(word, opts) || pt::is_correct(word),
         ProofLang::Bg | ProofLang::Other => true,
@@ -523,6 +525,7 @@ pub fn is_correct_in_with(word: &str, lang: ProofLang, opts: &Options) -> bool {
 pub fn suggest_in(word: &str, max: usize, lang: ProofLang) -> Vec<String> {
     match lang {
         ProofLang::En => suggest(word, max),
+        ProofLang::Fi => language::suggest(word, "fi", max),
         ProofLang::Pl => pl::suggest(word, max),
         ProofLang::Pt => pt::suggest(word, max),
         ProofLang::Bg | ProofLang::Other => Vec::new(),
@@ -535,6 +538,7 @@ pub fn suggest_in(word: &str, max: usize, lang: ProofLang) -> Vec<String> {
 pub fn check_grammar_in(text: &str, lang: ProofLang) -> Vec<Issue> {
     match lang {
         ProofLang::En => check_grammar(text),
+        ProofLang::Fi => language::check_grammar(text, "fi"),
         ProofLang::Pl => pl::grammar::check(text),
         ProofLang::Pt => pt::grammar::check(text),
         ProofLang::Bg | ProofLang::Other => Vec::new(),
@@ -595,6 +599,10 @@ pub fn check_text_with(text: &str, spans: &[(Range<usize>, ProofLang)], opts: &O
 
 /// Grammar issues in a paragraph of English text.
 pub fn check_grammar(text: &str) -> Vec<Issue> {
+    check_grammar_with_start(text, true)
+}
+
+pub(crate) fn check_grammar_with_start(text: &str, sentence_start: bool) -> Vec<Issue> {
     let mut v = Vec::new();
     let ws = words(text);
     for pair in ws.windows(2) {
@@ -667,7 +675,7 @@ pub fn check_grammar(text: &str) -> Vec<Issue> {
         });
     }
     // Sentence start capital.
-    let mut after_end = true;
+    let mut after_end = sentence_start;
     for (a, b) in &ws {
         let Some(w) = text.get(*a..*b) else { continue };
         if after_end && w.chars().next().is_some_and(char::is_lowercase) && w.chars().all(char::is_alphabetic) {

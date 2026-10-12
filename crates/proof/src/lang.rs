@@ -13,6 +13,8 @@ pub enum ProofLang {
     /// Polish (`pl`, `pl-PL`): the installed Hunspell dictionary (when there is one), the Polish grammar rules and the Polish
     /// hyphenation patterns.
     Pl,
+    /// Finnish: the optional system Voikko library and dictionary.
+    Fi,
     /// Bulgarian (`bg`, `bg-BG`): hyphenation by the Bulgarian syllable rules ([`crate::bg`]).
     /// There is no Bulgarian dictionary or grammar yet, so, as for [`ProofLang::Other`], no
     /// spelling or grammar marks.
@@ -30,7 +32,7 @@ pub enum ProofLang {
 
 impl ProofLang {
     /// Every language with a spelling dictionary, in display order.
-    pub const PROOFED: [ProofLang; 3] = [ProofLang::En, ProofLang::Pl, ProofLang::Pt];
+    pub const PROOFED: [ProofLang; 4] = [ProofLang::En, ProofLang::Pl, ProofLang::Pt, ProofLang::Fi];
 
     /// The proofing language of a BCP 47 tag (`pl-PL`, `en_GB`, `PL`…). Only the primary subtag
     /// counts. No tag (or an empty one) is English, WordCraft's default editing language.
@@ -39,6 +41,8 @@ impl ProofLang {
         let primary = tag.split(['-', '_']).next().unwrap_or("");
         if primary.eq_ignore_ascii_case("en") || primary.eq_ignore_ascii_case("eng") {
             ProofLang::En
+        } else if primary.eq_ignore_ascii_case("fi") || primary.eq_ignore_ascii_case("fin") {
+            ProofLang::Fi
         } else if primary.eq_ignore_ascii_case("pl") || primary.eq_ignore_ascii_case("pol") {
             ProofLang::Pl
         } else if primary.eq_ignore_ascii_case("bg") || primary.eq_ignore_ascii_case("bul") {
@@ -55,6 +59,7 @@ impl ProofLang {
         match self {
             ProofLang::En => "en",
             ProofLang::Pl => "pl",
+            ProofLang::Fi => "fi",
             ProofLang::Bg => "bg",
             ProofLang::Pt => "pt",
             ProofLang::Other => "",

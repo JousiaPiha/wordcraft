@@ -54,6 +54,8 @@ pub fn specs() -> Vec<CommandSpec> {
         CommandSpec::new("review.changes", "Reviewing Pane", "Review › Tracking", list_changes).pure(),
         CommandSpec::new("review.spelling", "Spelling & Grammar", "Review › Proofing", next_issue).key("F7 / Alt+F7").pure(),
         CommandSpec::new("review.issues", "Proofing Issues", "Review › Proofing", all_issues).pure(),
+        CommandSpec::new("review.proofingStatus", "Proofing", "Review › Language", proofing_status)
+            .params(r#"{"lang"?: "fi-FI|en-US|…"} (omit for the caret's proofing language)"#).pure(),
         CommandSpec::new("review.suggestions", "Spelling Suggestions", "Review › Proofing", suggestions).params(r#"{"pos"?: Pos}"#).pure(),
         CommandSpec::new("review.addToDictionary", "Add to Dictionary", "Review › Proofing", |s, v| {
             let w = match p::str(v, "word") {
@@ -788,7 +790,8 @@ fn word_count(s: &mut Session, v: &Value) -> CmdResult {
 /// skipping text left unchecked — the same issues the layout underlines.
 fn para_issues(s: &Session, story: StoryRef, path: &wordcraft_doc::Path) -> Vec<(Pos, Pos, wordcraft_proof::Issue)> {
     let Some(p) = s.doc.para(story, path) else { return Vec::new() };
-    let runs = wordcraft_layout::para::proof_runs(&s.doc, p, None);
+    let table = wordcraft_layout::proof::table_props(&s.doc, story, path);
+    let runs = wordcraft_layout::para::proof_runs(&s.doc, p, table.as_ref());
     wordcraft_layout::para::paragraph_issues(p, &runs, &s.prefs.spelling(), true)
         .into_iter()
         .map(|i| (Pos { story, path: path.clone(), off: i.start }, Pos { story, path: path.clone(), off: i.end }, i))
@@ -802,12 +805,55 @@ fn issue_at(s: &Session, at: &Pos) -> Option<(Pos, Pos, wordcraft_proof::Issue)>
 
 fn issue_json(s: &Session, a: &Pos, b: &Pos, i: &wordcraft_proof::Issue) -> Value {
     let word = s.doc.para_at(a).and_then(|p| p.text.get(a.off..b.off)).unwrap_or("").to_string();
-    let sugg = if i.kind == wordcraft_proof::IssueKind::Spelling { wordcraft_proof::suggest_in(&word, 6, i.lang) } else { i.suggestions.clone() };
-    json!({
-        "start": pos_json(a), "end": pos_json(b), "text": word,
-        "kind": if i.kind == wordcraft_proof::IssueKind::Spelling { "spelling" } else { "grammar" },
-        "message": i.message, "suggestions": sugg, "lang": i.lang.code(),
-    })
+    let lang = language_at(s, a);
+    let sugg =
+        if i.kind == wordcraft_proof::IssueKind::Spelling { wordcraft_proof::language::suggest(&word, &lang, 6) } else { i.suggestions.clone() };
+    json!({"start": pos_json(a), "end": pos_json(b), "text": word, "language": lang, "lang": i.lang.code(), "kind": if i.kind == wordcraft_proof::IssueKind::Spelling { "spelling" } else { "grammar" }, "message": i.message, "suggestions": sugg})
+}
+
+fn language_at(s: &Session, at: &Pos) -> String {
+    let table = wordcraft_layout::proof::table_props(&s.doc, at.story, &at.path);
+    s.doc.para_at(at).map(|p| wordcraft_layout::proof::language_at(p, &s.doc.styles, table.as_ref(), at.off)).unwrap_or_else(|| "en-US".into())
+}
+
+/// Effective typing language, including inherited styles and pending caret formatting.
+pub fn caret_language(s: &Session) -> String {
+    let at = &s.sel.focus;
+    let table = wordcraft_layout::proof::table_props(&s.doc, at.story, &at.path);
+    let style = s.doc.para_at(at).and_then(|p| p.props.style.as_deref());
+    s.doc.styles.resolve_char_in(style, table.as_ref(), &s.typing_props()).lang.unwrap_or_else(|| "en-US".into())
+}
+
+fn proofing_status(s: &mut Session, v: &Value) -> CmdResult {
+    let lang = p::str(v, "lang").map(str::to_string).unwrap_or_else(|| caret_language(s));
+    let status = wordcraft_proof::language::status(&lang);
+    s.status = if status.available {
+        format!("Proofing is available for {lang}.")
+    } else {
+        format!("Proofing for {lang}: {}", status.reason.as_deref().unwrap_or("unavailable"))
+    };
+    Ok(json!({"language": lang, "available": status.available, "backend": status.backend, "reason": status.reason}))
+}
+
+/// A partial/unavailable scan must not tell the writer that checking completed.
+fn ensure_proofing(s: &Session, story: StoryRef) -> Result<(), CmdError> {
+    let mut checked = std::collections::HashSet::new();
+    for path in s.doc.para_paths(story) {
+        let Some(p) = s.doc.para(story, &path) else { continue };
+        if p.text.len() > 100_000 {
+            return Err(CmdError::Disabled("A paragraph exceeds the 100,000-byte proofing limit".into()));
+        }
+        let table = wordcraft_layout::proof::table_props(&s.doc, story, &path);
+        for span in wordcraft_layout::proof::spans(p, &s.doc.styles, table.as_ref()) {
+            if p.text.get(span.range).is_some_and(|t| t.chars().any(char::is_alphabetic)) && checked.insert(span.language.clone()) {
+                let status = wordcraft_proof::language::status(&span.language);
+                if !status.available {
+                    return Err(CmdError::Disabled(format!("Proofing for {}: {}", span.language, status.reason.unwrap_or_default())));
+                }
+            }
+        }
+    }
+    Ok(())
 }
 
 /// F7: select the next issue after the caret and return it with suggestions.
@@ -827,6 +873,7 @@ fn next_issue(s: &mut Session, _: &Value) -> CmdResult {
             return Ok(r);
         }
     }
+    ensure_proofing(s, story)?;
     s.status = "The spelling and grammar check is complete.".into();
     Ok(json!({"done": true}))
 }
@@ -840,6 +887,13 @@ fn all_issues(s: &mut Session, _: &Value) -> CmdResult {
                 return Ok(Value::Array(out));
             }
         }
+    }
+    if out.is_empty()
+        && let Err(error) = ensure_proofing(s, StoryRef::Body)
+    {
+        // Keep the upstream issue-list contract; availability is exposed through
+        // the status message and review.proofingStatus. F7 still returns an error.
+        s.status = error.to_string();
     }
     Ok(Value::Array(out))
 }

@@ -4275,6 +4275,35 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
 
 [[package]]
+name = "voikko-core"
+version = "0.1.0"
+source = "git+https://github.com/yongsk0066/corevoikko?rev=beba2cd7c0b3839b63f54c18948c4e2add318bc1#beba2cd7c0b3839b63f54c18948c4e2add318bc1"
+dependencies = [
+ "thiserror 2.0.21",
+]
+
+[[package]]
+name = "voikko-fi"
+version = "0.1.0"
+source = "git+https://github.com/yongsk0066/corevoikko?rev=beba2cd7c0b3839b63f54c18948c4e2add318bc1#beba2cd7c0b3839b63f54c18948c4e2add318bc1"
+dependencies = [
+ "thiserror 2.0.21",
+ "voikko-core",
+ "voikko-fst",
+]
+
+[[package]]
+name = "voikko-fst"
+version = "0.1.0"
+source = "git+https://github.com/yongsk0066/corevoikko?rev=beba2cd7c0b3839b63f54c18948c4e2add318bc1#beba2cd7c0b3839b63f54c18948c4e2add318bc1"
+dependencies = [
+ "bytemuck",
+ "hashbrown 0.16.1",
+ "thiserror 2.0.21",
+ "voikko-core",
+]
+
+[[package]]
 name = "wait-timeout"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5318,6 +5347,7 @@ dependencies = [
  "log",
  "miniz_oxide 0.8.9",
  "proptest",
+ "wordcraft-voikko",
 ]
 
 [[package]]
@@ -5357,6 +5387,15 @@ dependencies = [
  "wordcraft-zotero",
  "zbus",
  "zip",
+]
+
+[[package]]
+name = "wordcraft-voikko"
+version = "0.6.1"
+dependencies = [
+ "proptest",
+ "voikko-core",
+ "voikko-fi",
 ]
 
 [[package]]

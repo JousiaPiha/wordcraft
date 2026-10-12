@@ -150,6 +150,12 @@
         <RegistryValue Root="HKLM" Key="Software\Classes\Applications\wordcraft.exe\SupportedTypes" Name=".txt" Value="" Type="string" />
       </Component>
 
+      <Component Id="VoikkoNotices">
+        <File Source="$(var.BinDir)\NOTICE" KeyPath="yes" />
+        <File Source="$(var.BinDir)\ATTRIBUTION.md" />
+      </Component>
+      <Files Include="$(var.BinDir)\voikko\**" Directory="INSTALLFOLDER" Subdirectory="voikko" />
+
       <Component Id="WordcraftCli">
         <File Id="WordcraftCliExe" Source="$(var.BinDir)\wordcraft-cli.exe" KeyPath="yes" />
       </Component>

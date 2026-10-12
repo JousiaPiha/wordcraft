@@ -910,6 +910,16 @@ fn region_text(st: &TableStyleProps, (header, total, first_col, last_col, band, 
     CellText { para: st.para.clone(), chr }
 }
 
+/// The same conditional character formatting used by layout, for proofing from
+/// the engine without forcing a layout pass.
+pub(crate) fn proof_char_props(doc: &wordcraft_doc::Document, t: &Table, ri: usize, ci: usize) -> Option<wordcraft_doc::CharProps> {
+    let style = doc.styles.table_style(t.props.style.as_deref()?)?;
+    let row = t.rows.get(ri)?;
+    let cell = row.cells.get(ci)?;
+    let g = row.cells.get(..ci)?.iter().fold(0usize, |g, c| g.saturating_add(c.span()));
+    Some(region_text(&style, region_of(t, Some(&style), ri, g, cell.span(), t.cols().clamp(1, wordcraft_doc::table::MAX_COLS))).chr)
+}
+
 /// Each column's narrowest and widest content, cell margins included: its longest word and its
 /// longest line. A cell spanning columns shares what they lack between them; nested tables count
 /// with their own. `None` when every cell is empty.

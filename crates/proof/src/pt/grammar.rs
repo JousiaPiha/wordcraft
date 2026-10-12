@@ -68,11 +68,16 @@ fn ends_sentence(gap: &str, prev: &str) -> bool {
 
 /// Grammar issues in a paragraph of Portuguese text, in order.
 pub fn check(text: &str) -> Vec<Issue> {
+    check_with_start(text, true)
+}
+
+/// Check a language span without treating a mid-sentence boundary as a sentence start.
+pub(crate) fn check_with_start(text: &str, sentence_start: bool) -> Vec<Issue> {
     let ws: Vec<(usize, usize)> = words(text);
     let mut v = Vec::new();
     repeated_words(text, &ws, &mut v);
     spaces(text, &mut v);
-    sentence_capitals(text, &ws, &mut v);
+    sentence_capitals(text, &ws, &mut v, sentence_start);
     doubled_punctuation(text, &mut v);
     v.sort_by_key(|i| (i.start, i.end));
     v
@@ -124,14 +129,14 @@ fn spaces(text: &str, v: &mut Vec<Issue>) {
     }
 }
 
-fn sentence_capitals(text: &str, ws: &[(usize, usize)], v: &mut Vec<Issue>) {
+fn sentence_capitals(text: &str, ws: &[(usize, usize)], v: &mut Vec<Issue>, sentence_start: bool) {
     // List items (`– maçãs,`) may start in lower case.
     let list_item = text.trim_end().ends_with([',', ';']);
     for (k, &(a, b)) in ws.iter().enumerate() {
         let Some(w) = text.get(a..b) else { continue };
         let starts = if k == 0 {
             let before = text.get(..a).unwrap_or("");
-            !list_item && before.chars().all(|c| c.is_whitespace() || OPENING.contains(&c))
+            sentence_start && !list_item && before.chars().all(|c| c.is_whitespace() || OPENING.contains(&c))
         } else {
             let Some(&(pa, pb)) = ws.get(k - 1) else { continue };
             ends_sentence(text.get(pb..a).unwrap_or(""), text.get(pa..pb).unwrap_or(""))

@@ -74,3 +74,16 @@ Generated-in-code art is original and has no file to list: the UI icon set (`cra
 | `crates/ui-egui/src/i18n/bg.tsv` | Dimitar Klaturov (@bulgariamitko) with Claude Code | Original translation from the English interface labels in this repository; no other product localisation or other catalog used | MIT OR Apache-2.0 | Bulgarian interface catalog |
 | `crates/ui-egui/src/i18n/hu.tsv` | @Skaywalker | Original translation from the English interface labels in this repository; no other product localisation copied | MIT OR Apache-2.0 | Hungarian interface catalog |
 | `crates/ui-egui/src/i18n/fr.tsv` | @pechnikov2026-star | Original translation from the English interface labels in this repository; no other product localisation copied | MIT OR Apache-2.0 | French interface catalog |
+
+## Finnish Voikko proofing
+
+Pinned source: [yongsk0066/corevoikko at beba2cd7](https://github.com/yongsk0066/corevoikko/tree/beba2cd7c0b3839b63f54c18948c4e2add318bc1).
+
+| Asset | Author | Source | License |
+| --- | --- | --- | --- |
+| `assets/voikko/mor.vfst` | Voikko project contributors | Pinned source, `libvoikko/js/dict/mor.vfst` | GPL-2.0-or-later; dictionary data |
+| `assets/voikko/autocorr.vfst` | Voikko project contributors | Pinned source, `libvoikko/js/dict/autocorr.vfst` | GPL-2.0-or-later; dictionary data |
+| `assets/voikko/COPYING-dictionary.txt` | Free Software Foundation | Pinned source, `voikko-fi/COPYING` | GPL-2.0 license text, verbatim |
+| `assets/voikko/LICENSE-libvoikko.txt` | libvoikko contributors / license authors | Pinned source, `libvoikko/LICENSE.CORE` | Upstream license notice and texts, verbatim |
+| `assets/voikko/CONTRIBUTORS.txt` | Voikko project | Pinned source, `voikko-fi/CONTRIBUTORS` | Upstream dictionary credits, verbatim |
+| `assets/voikko/README.md` | WordCraft contributors | Original provenance documentation | MIT OR Apache-2.0 |

@@ -17,6 +17,7 @@ pub mod kinsoku;
 pub mod math;
 pub mod outline;
 pub mod para;
+pub mod proof;
 mod table;
 mod textbox;
 mod vertical;

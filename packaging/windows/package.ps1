@@ -90,6 +90,13 @@ $Stage = Join-Path $TargetDir "windows-package\$Arch"
 Remove-Item -Recurse -Force $Stage -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Force -Path $Stage | Out-Null
 Copy-Item (Join-Path $Bin 'wordcraft.exe'), (Join-Path $Bin 'wordcraft-cli.exe') $Stage
+# Ship the embedded Finnish dictionary's licenses with MSI and portable builds.
+$VoikkoDocs = Join-Path $Stage 'voikko'
+New-Item -ItemType Directory -Force -Path $VoikkoDocs | Out-Null
+Copy-Item (Join-Path $Root 'assets\voikko\README.md') $VoikkoDocs
+Copy-Item (Join-Path $Root 'assets\voikko\*.txt') $VoikkoDocs
+Copy-Item (Join-Path $Root 'NOTICE'), (Join-Path $Root 'ATTRIBUTION.md') $Stage
+
 
 & (Join-Path $PSScriptRoot 'sign.ps1') (Join-Path $Stage 'wordcraft.exe') (Join-Path $Stage 'wordcraft-cli.exe')
 
@@ -141,7 +148,8 @@ $Portable = Join-Path $TargetDir "windows-package\wordcraft-$Version-windows-$Ar
 Remove-Item -Recurse -Force $Portable -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Force -Path $Portable | Out-Null
 Copy-Item (Join-Path $Stage '*.exe') $Portable
-foreach ($f in 'README.md', 'LICENSE', 'LICENSE-MIT', 'LICENSE-APACHE') {
+Copy-Item -Recurse (Join-Path $Stage 'voikko') $Portable
+foreach ($f in 'README.md', 'LICENSE', 'LICENSE-MIT', 'LICENSE-APACHE', 'NOTICE', 'ATTRIBUTION.md') {
   $p = Join-Path $Root $f
   if (Test-Path $p) { Copy-Item $p $Portable }
 }

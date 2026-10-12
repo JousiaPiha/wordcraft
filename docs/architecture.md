@@ -1,6 +1,6 @@
 # WordCraft architecture
 
-> **Last reviewed:** 2026-10-10 · **Last updated:** 2026-10-10 · **Change:** minor (`proof` is per language: English and Polish; previously major: first committed version; `plan/architecture.md` is local-only) · **Target:** Microsoft Word (Microsoft 365) for Mac 16.113.4
+> **Last reviewed:** 2026-10-13 · **Last updated:** 2026-10-13 · **Change:** minor (embedded Rust Finnish proofing) · **Target:** Microsoft Word (Microsoft 365) for Mac 16.113.4
 
 How WordCraft is built today (origin/main `40c5d51`). The longer design notes in
 `plan/architecture.md` are gitignored and local to the original author's machine; this file is the
@@ -17,7 +17,8 @@ winit or rfd.
 | L0 | `geom` | 0.2k | Units (points, twips, EMU, inches, cm), rectangles, measurement parsing |
 | L1 | `doc` | 10.0k | Document model: stories, paragraphs, runs, tables, sections, styles, numbering, fields, notes, comments, revisions, equations (OMML-shaped math tree, linear/LaTeX input); edit primitives; bidi |
 | L1 | `fonts` | 2.3k | Font database (bundled OFL + system fonts), metrics, outlines, shaping with HarfRust, Word font substitution (`word.rs`: Carlito ↔ Calibri, Caladea ↔ Cambria, Liberation ↔ Arial/Times/Courier), OpenType MATH |
-| L1 | `proof` | 3.8k | Proofing per language (`ProofLang` from a run's `w:lang`): English (public-domain word list) and Polish (installed Hunspell dictionary through a Hunspell-style affix engine) spelling and suggestions, rule-based grammar for both, hyphenation dictionary and Liang patterns (English, Polish) |
+| foundation | `voikko` | — | Bounded safe adapter to pinned Rust Voikko crates and embedded Finnish dictionaries |
+| L1 | `proof` | 3.8k | Proofing per language (`ProofLang` from a run's `w:lang`): English, Polish and Portuguese proofing, Bulgarian hyphenation, and Finnish through embedded Rust Voikko |
 | L2 | `layout` | 9.6k | Shaping runs, line breaking, tabs, lists, tables (row splitting, floating tables), pagination, headers/footers, notes, floating objects and wrap, math layout, fields, hit testing; produces a display list |
 | L2 | `docx` | 8.4k | OOXML WordprocessingML reader and writer (Transitional and Strict namespaces, `.docx/.docm/.dotx/.dotm`), OMML, custom properties, VBA parts preserved |
 | L2 | `docbin` | 4.4k | Word 97-2003 `.doc` reader ([MS-DOC]: FIB, piece table, FKPs, SPRMs, stylesheet, lists, tables, notes, pictures) over a CFB container |
@@ -48,6 +49,8 @@ winit or rfd.
    an egui/wgpu canvas; PDF export walks the same display list through `pdf`.
 5. **Save:** `engine::io` picks a writer by extension.
 
+Proofing in `layout::para::paragraph_issues` is shared by page underlines and engine review commands. Paragraphs containing Finnish use the exclusion-aware language spans in `layout::proof`; other paragraphs retain the upstream checker. They resolve language and exclusions through document, table, paragraph and character formatting. Rust Voikko is initialized once per thread with embedded Finnish data on desktop and WASM. See [Voikko usage and bounds](voikko.md).
+
 ## Testing and gates
 
 - 821 `#[test]` functions and 10 property-test blocks: model, layout, DOCX round-trip and hostile
@@ -64,5 +67,7 @@ winit or rfd.
 
 | Date | Change | Summary |
 |---|---|---|
+| 2026-10-13 | minor | Replaced native Voikko with pinned Rust crates and embedded dictionary; unsafe exception removed, Finnish tests enabled by default; Windows/Apple Silicon runtime checks pending |
+| 2026-10-12 | minor | Updated to 0.6.1; Finnish Voikko integrated with upstream proofing languages, preferences and language menu |
 | 2026-10-10 | minor | `proof`: proofing languages (English, Polish), affix engine, Polish patterns; layout and engine route each run by its language |
 | 2026-10-10 | major | First committed architecture doc, from the crates' sources and `AGENTS.md` |

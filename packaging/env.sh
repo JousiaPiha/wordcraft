@@ -47,10 +47,11 @@ warn() {
 # Copy licence and readme files that exist into a package directory.
 copy_docs() {
   local dest="$1" f
-  for f in README.md LICENSE LICENSE-MIT LICENSE-APACHE COPYRIGHT; do
+  for f in README.md LICENSE LICENSE-MIT LICENSE-APACHE COPYRIGHT NOTICE ATTRIBUTION.md; do
     if [ -f "$ROOT/$f" ]; then cp "$ROOT/$f" "$dest/"; fi
   done
   copy_font_licences "$dest"
+  copy_voikko_licences "$dest"
 }
 
 # Builds made with craft-fonts (CRAFT_FONTS_DIR, set by the release workflow) embed its fonts, so
@@ -66,4 +67,11 @@ copy_font_licences() {
 # Portable SHA-256 of a file (prints just the hash).
 sha256() {
   if command -v sha256sum >/dev/null; then sha256sum "$1" | cut -d' ' -f1; else shasum -a 256 "$1" | cut -d' ' -f1; fi
+}
+
+# The dictionary is embedded in both binaries; carry its separate licenses.
+copy_voikko_licences() {
+  local dest="$1"
+  mkdir -p "$dest/voikko"
+  cp "$ROOT/assets/voikko/README.md" "$ROOT/assets/voikko/"*.txt "$dest/voikko/"
 }
