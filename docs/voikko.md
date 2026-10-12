@@ -1,6 +1,6 @@
 # Finnish proofing with Voikko
 
-> **Last reviewed:** 2026-10-13 · **Last updated:** 2026-10-13 · **Change:** minor (Apple Silicon package verification)
+> **Last reviewed:** 2026-10-13 · **Last updated:** 2026-10-13 · **Change:** minor (Mac user acceptance confirmed)
 
 WordCraft includes Finnish spelling, correction suggestions, grammar checking and
 hyphenation through the Rust implementation of Voikko. The engine and Finnish
@@ -61,8 +61,8 @@ cargo xtask ci
 
 The `Finnish proofing` workflow runs the same tests on Linux x86_64, Windows
 x86_64 and macOS Apple Silicon. It is prepared here; adding a workflow does not
-mean those remote machines have already passed. User testing on Windows and
-Apple Silicon remains necessary.
+mean those remote machines have already passed. The owner has confirmed that the
+Apple Silicon Mac version works; Windows user testing remains pending.
 
 Build the desktop and CLI on each machine with Rust 1.95.0 or newer. On Windows,
 use Rust's MSVC toolchain with Visual Studio C++ Build Tools and the Windows SDK.
@@ -121,8 +121,8 @@ a browser UI test. Asset attribution (59 files) and layering (21 crates) pass.
 The full `cargo +1.95.0 xtask ci` command passes all six gates: formatting,
 workspace Clippy, tests, asset attribution, dependency layering and WASM builds.
 Small, behavior-preserving cleanups for Rust 1.95 Clippy are included in a separate
-commit. Windows x86_64 execution remains pending. Apple Silicon results follow;
-personal acceptance on both desktop platforms remains pending.
+commit. Windows x86_64 execution and user acceptance remain pending. Apple Silicon
+automated, visual and owner acceptance results follow.
 
 ### Apple Silicon macOS (2026-10-13)
 
@@ -182,12 +182,14 @@ After correcting `Äiti ja koirra.` to `Äiti ja koira.`, the spelling mark clea
 but Voikko reports a missing-main-verb grammar warning on that sentence fragment.
 That is distinct from the clean complete-sentence test `Äiti on kotona.`.
 
-**Pending manual acceptance (not passed):** Finder drag-to-Applications and
-ordinary launch; Language-menu selection, physical typing and F7 shortcuts;
-native Finnish review of suggestion/grammar/hyphenation quality on personal
-documents; repeating normal use with networking disconnected. Windows x86_64
-runtime and packaged-app testing remain pending. These synthetic Mac checks do
-not establish wider Word parity or personal acceptance.
+**Owner acceptance (2026-10-13):** after receiving the local DMG, the owner
+reported: “Mac version works.” Mac personal acceptance is therefore confirmed.
+This is an overall user report, not an item-by-item manual test record: the
+Finder installation path, Language-menu selection, physical typing/F7, Finnish
+linguistic quality on personal documents and physically disconnected-network use
+were not individually reported. The automated and visual evidence above remains
+separate. Windows x86_64 runtime, packaged-app testing and user acceptance remain
+pending; broader Word parity is not established by these checks.
 
 Local outputs, relative to the checkout:
 
@@ -204,4 +206,5 @@ No release or PR was published; no ongoing maintainer role is assumed.
 
 | Date | Change | Summary |
 | --- | --- | --- |
+| 2026-10-13 | minor | Owner confirmed the Mac version works; recorded overall Mac acceptance separately from automated checks and unreported manual details; Windows testing remains pending |
 | 2026-10-13 | minor | Recorded native Apple Silicon build, ad-hoc package, offline app automation and visual results; personal acceptance and Windows testing pending |

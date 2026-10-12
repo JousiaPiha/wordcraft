@@ -2,7 +2,7 @@
 
 **Stage: alpha** · next: beta, ~15 points (60% → 75% ready for real work) and ~150–230 h away
 
-> **Last reviewed:** 2026-10-13 · **Last updated:** 2026-10-13 · **Change:** minor (Apple Silicon Finnish proofing verification) · **Target:** Microsoft Word (Microsoft 365) for Mac 16.113.4
+> **Last reviewed:** 2026-10-13 · **Last updated:** 2026-10-13 · **Change:** minor (Mac user acceptance confirmed) · **Target:** Microsoft Word (Microsoft 365) for Mac 16.113.4
 
 > **Printing update:** 2026-10-12 · direct desktop printing through craft-print; details below.
 
@@ -135,6 +135,7 @@ Ranked, to beta (detail and remaining milestones in [docs/roadmap.md](docs/roadm
 
 | Date | What landed |
 |---|---|
+| 2026-10-13 | Owner confirmed the Apple Silicon Mac version works after delivery of the local DMG; Mac user acceptance recorded, with individual manual-check details unreported and Windows testing still pending ([results](docs/voikko.md#apple-silicon-macos-2026-10-13)) |
 | 2026-10-13 | Native Apple Silicon Finnish proofing verified on macOS 26.6.2 with Rust 1.95.0; ad-hoc ARM64 DMG and CLI ZIP built, packaged app checked offline with screenshots; no source fixes needed; personal acceptance and Windows runtime testing remain pending ([results](docs/voikko.md#apple-silicon-macos-2026-10-13)) |
 | 2026-10-13 | Finnish proofing now uses embedded Rust Voikko on desktop and WASM; no separate native installation; cross-platform test workflow and user checklist added |
 | 2026-10-12 | Local 0.6.1 update retains Finnish Voikko spelling, grammar, suggestions and hyphenation alongside upstream Polish/Portuguese proofing and spelling preferences; Debian installer rebuilt |

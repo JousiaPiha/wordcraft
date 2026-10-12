@@ -1,6 +1,6 @@
 # Localization parity with Microsoft Word
 
-> **Last reviewed:** 2026-10-13 · **Last updated:** 2026-10-13 · **Change:** minor (Apple Silicon Finnish proofing verification) · **Target:** Microsoft Word (Microsoft 365) for Mac 16.113.4
+> **Last reviewed:** 2026-10-13 · **Last updated:** 2026-10-13 · **Change:** minor (Mac user acceptance confirmed) · **Target:** Microsoft Word (Microsoft 365) for Mac 16.113.4
 
 Interface languages, script support and proofing per language. How translation works (catalog
 format, adding a language, clean-room rule): `crates/ui-egui/src/i18n/mod.rs`.
@@ -89,8 +89,9 @@ documents in Polish (`pl-PL`).
 
 Apple Silicon: the ARM64 ad-hoc package was exercised on macOS 26.6.2 with Rust
 1.95.0, including offline spelling, grammar, hyphenation, mixed-language formatting
-and DOCX reopening. Automated and screenshot checks passed; personal acceptance
-and Windows runtime testing remain pending. See [Mac results](voikko.md#apple-silicon-macos-2026-10-13).
+and DOCX reopening. Automated and screenshot checks passed, and the owner
+confirmed that the Mac version works. Windows runtime testing and acceptance
+remain pending. See [Mac results](voikko.md#apple-silicon-macos-2026-10-13).
 
 Measured with the SJP.PL dictionary: every one of the ~4.5 million forms an independent expansion of its affix file
 produces is accepted, and 200,000 one-edit mutations that aren't words are all rejected; a check
@@ -164,6 +165,7 @@ WordCraft keeps 2,54 cm).
 
 | Date | Change | Summary |
 |---|---|---|
+| 2026-10-13 | minor | Owner confirmed the Mac version works; overall Mac user acceptance recorded, Windows testing still pending |
 | 2026-10-13 | minor | Native Apple Silicon Finnish proofing and ad-hoc package verified, including offline app automation and screenshots; personal acceptance and Windows runtime checks remain pending |
 | 2026-10-13 | minor | Replaced native Voikko with pinned Rust crates and embedded dictionary; unsafe exception removed, Finnish tests enabled by default; Windows/Apple Silicon runtime checks pending |
 | 2026-10-12 | minor | Updated to 0.6.1; Finnish Voikko integrated with upstream proofing languages, preferences and language menu |
