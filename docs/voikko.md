@@ -1,6 +1,6 @@
 # Finnish proofing with Voikko
 
-> **Last reviewed:** 2026-10-13 · **Last updated:** 2026-10-13 · **Change:** minor (Mac user acceptance confirmed)
+> **Last reviewed:** 2026-10-14 · **Last updated:** 2026-10-14 · **Change:** minor (upstream 0.7.0 sync)
 
 WordCraft includes Finnish spelling, correction suggestions, grammar checking and
 hyphenation through the Rust implementation of Voikko. The engine and Finnish
@@ -15,7 +15,7 @@ document's default language in that dialog. The status-bar language menu also
 includes Finnish. **Spelling & Grammar (F7)**, spelling underlines, correction
 suggestions, and automatic/manual hyphenation use Voikko for Finnish text.
 Language can vary within a paragraph and is inherited through styles and table
-formatting. English, Polish, Portuguese and Bulgarian keep their existing tools.
+formatting. English, Polish, Portuguese, Italian, Croatian and Bulgarian keep their existing tools.
 
 Ignore All, the user dictionary, spelling preferences, hidden/deleted text and
 no-proof formatting are respected. Grammar checking does not treat a formatting
@@ -168,6 +168,7 @@ opened for visual inspection.
 
 | Checklist item | Automated packaged-app result | Visual result |
 | --- | --- | --- |
+| 2026-10-14 | minor | Synced upstream 0.7.0; retained Finnish and integrated Italian/Croatian routing and upstream spelling optimization |
 | Finnish default and availability | `fi-FI`, `voikko-rust`, available | Status bar displays Finnish |
 | `Äiti ja koirra.` | Only spelling issue is `koirra`; `koira` offered; correction and undo pass, including clicking the visible context-menu suggestion | Red underline only on `koirra`; suggestion menu displays `koira` |
 | `Äiti on on kotona.` | Grammar range is UTF-8 bytes 6–11; selection is exactly `on on`; correction gives `Äiti on kotona.` | Selection and grammar underline cover `on on`, not `Äiti` |
@@ -202,9 +203,29 @@ Local outputs, relative to the checkout:
 The test instance was closed and its read-only DMG unmounted after verification.
 No release or PR was published; no ongoing maintainer role is assumed.
 
+## Upstream sync (2026-10-14)
+
+Merged upstream `a124d58` (0.7.0, 70 commits after the previous base). Finnish
+remains built in. The shared adapter now reports Italian and Croatian Hunspell
+availability, checks their grammar without inventing sentence boundaries, and
+uses the upstream spelling-token optimization. The updated language menu keeps
+Finnish and the full language dialog. Regression tests cover the new backends
+and Finnish internet-token handling.
+
+Linux x86_64, Rust 1.95.0: the full `cargo +1.95.0 xtask ci` passes all six
+gates after the merge, with 2,162 tests passed, no failures, one ignored test,
+and all 17 WASM-safe crates checked. Three equivalent boolean-expression
+cleanups in upstream code are included for Rust 1.95 Clippy. A focused review
+found no important proofing merge regressions.
+
+The owner also confirmed manual acceptance of the previous Linux x86_64 `.deb`.
+The Mac acceptance above applies to the earlier tested commit; the merged version
+has not been retested on Mac or Windows.
+
 ## Revision history
 
 | Date | Change | Summary |
 | --- | --- | --- |
+| 2026-10-14 | minor | Synced upstream 0.7.0; retained Finnish and integrated Italian/Croatian routing and upstream spelling optimization |
 | 2026-10-13 | minor | Owner confirmed the Mac version works; recorded overall Mac acceptance separately from automated checks and unreported manual details; Windows testing remains pending |
 | 2026-10-13 | minor | Recorded native Apple Silicon build, ad-hoc package, offline app automation and visual results; personal acceptance and Windows testing pending |

@@ -36,15 +36,15 @@ pub fn status(language: &str) -> Status {
     } else if finnish(language) {
         let reason = backend::status().err();
         Status { available: reason.is_none(), backend: "voikko-rust", reason }
-    } else if matches!(crate::ProofLang::from_tag(Some(language)), crate::ProofLang::Pl | crate::ProofLang::Pt) {
-        let available = if crate::ProofLang::from_tag(Some(language)) == crate::ProofLang::Pl {
-            crate::pl::has_dictionary()
-        } else {
-            crate::pt::has_dictionary()
+    } else {
+        let available = match crate::ProofLang::from_tag(Some(language)) {
+            crate::ProofLang::Pl => crate::pl::has_dictionary(),
+            crate::ProofLang::Pt => crate::pt::has_dictionary(),
+            crate::ProofLang::It => crate::it::has_dictionary(),
+            crate::ProofLang::Hr => crate::hr::has_dictionary(),
+            _ => return Status { available: false, backend: "none", reason: Some("No proofing dictionary for this language".into()) },
         };
         Status { available, backend: "hunspell", reason: (!available).then(|| "No installed Hunspell dictionary for this language".into()) }
-    } else {
-        Status { available: false, backend: "none", reason: Some("No proofing dictionary for this language".into()) }
     }
 }
 
@@ -57,7 +57,7 @@ pub fn check_spelling_with(text: &str, language: &str, options: &crate::Options)
         return Vec::new();
     }
     let lang = crate::ProofLang::from_tag(Some(language));
-    crate::words(text).into_iter().filter_map(|(a, b)| crate::spelling_issue(text, a, b, lang, options)).collect()
+    crate::spelling_issues(text, |_| lang, options)
 }
 
 pub fn check_grammar(text: &str, language: &str) -> Vec<Issue> {
@@ -74,6 +74,8 @@ pub fn check_grammar_in_context(text: &str, language: &str, sentence_start: bool
         match crate::ProofLang::from_tag(Some(language)) {
             crate::ProofLang::Pl => crate::pl::grammar::check_with_start(text, sentence_start),
             crate::ProofLang::Pt => crate::pt::grammar::check_with_start(text, sentence_start),
+            crate::ProofLang::It => crate::it::grammar::check_with_start(text, sentence_start),
+            crate::ProofLang::Hr => crate::hr::grammar::check_with_start(text, sentence_start),
             _ => Vec::new(),
         }
     }
@@ -156,6 +158,45 @@ mod backend {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn upstream_hunspell_languages_remain_available() {
+        crate::it::test_dict::install();
+        crate::hr::test_dict::install();
+        for tag in ["it-IT", "hr-HR"] {
+            let result = status(tag);
+            assert!(result.available, "{tag}: {:?}", result.reason);
+            assert_eq!(result.backend, "hunspell");
+        }
+    }
+
+    #[test]
+    fn upstream_grammar_respects_language_boundaries() {
+        for (tag, text) in [("it-IT", "questo questo."), ("hr-HR", "ovo ovo.")] {
+            let issues = check_grammar_in_context(text, tag, false, true);
+            assert!(issues.iter().any(|i| i.start == 0 && i.end == text.len() - 1), "{tag}: repeated word must be checked: {issues:?}");
+            assert!(
+                !issues.iter().any(|i| i.start == 0 && i.end == text.find(' ').unwrap()),
+                "{tag}: mid-sentence span must not require a capital: {issues:?}"
+            );
+            let at_start = check_grammar(text, tag);
+            assert!(
+                at_start.iter().any(|i| i.start == 0 && i.end == text.find(' ').unwrap()),
+                "{tag}: actual sentence start needs a capital: {at_start:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn finnish_spelling_keeps_upstream_internet_token_handling() {
+        let text = "koirra@example.com,koirra koirra";
+        let issues = check_spelling(text, "fi-FI");
+        assert_eq!(issues.len(), 1);
+        assert_eq!(text.get(issues[0].start..issues[0].end), Some("koirra"));
+        assert_eq!(issues[0].start, 26);
+        let options = crate::Options { ignore_internet: false, ..Default::default() };
+        assert!(check_spelling_with(text, "fi-FI", &options).iter().any(|i| i.start == 0 && i.end == 6));
+    }
 
     #[test]
     fn finnish_backend_is_built_in_and_ready() {

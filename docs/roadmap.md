@@ -1,6 +1,6 @@
 # WordCraft roadmap: milestones and what's next
 
-> **Last reviewed:** 2026-10-13 · **Last updated:** 2026-10-13 · **Change:** minor (embedded Rust Finnish proofing) · **Target:** Microsoft Word (Microsoft 365) for Mac 16.113.4
+> **Last reviewed:** 2026-10-14 · **Last updated:** 2026-10-14 · **Change:** minor (upstream 0.7.0 sync with embedded Finnish proofing) · **Target:** Microsoft Word (Microsoft 365) for Mac 16.113.4
 
 Forward-looking plan. The summary is [`ROADMAP.md`](../ROADMAP.md); the ranked work list is
 [`gaps.md`](gaps.md); the numbers are in [`target-app-parity.md`](target-app-parity.md). Hours are
@@ -61,7 +61,7 @@ partial rows are fidelity gaps (beta work), not broken workflows. WordCraft stay
 | M12 | Formats breadth (PDF, ODT, RTF, HTML, MD, TXT, LaTeX, `.doc` import) | done (first versions); `.doc` write, encryption, minor formats missing | 60–100 h |
 | M13 | Performance budgets | on track (1.4 ms relayout); large real-world documents unmeasured | 10–20 h |
 | M14 | 1.0 polish, packaging, signing | releases v0.1.0–v0.4.0 published (signed macOS, Windows MSI x64/x86/arm64, Linux, FreeBSD, web) | — |
-| M15 | Localization (12 key languages, RTL interface, proofing languages) | 15 UI languages; English, Polish, Portuguese and built-in Finnish proofing, a proofing language per run | 70–115 h |
+| M15 | Localization (12 key languages, RTL interface, proofing languages) | 15 UI languages; English, Polish, Portuguese, Italian, Croatian and built-in Finnish proofing, a proofing language per run | 70–115 h |
 | M16 | Right-to-left and East Asian typography | RTL paragraphs done (#207) | 30–45 h |
 
 ## Next after beta
@@ -73,6 +73,7 @@ languages, screen-reader access, ecosystem decisions (VBA, add-ins, cloud), an i
 
 | Date | Change | Summary |
 |---|---|---|
+| 2026-10-14 | minor | Synced upstream 0.7.0 at `a124d58`; retained embedded Finnish proofing and integrated the Italian/Croatian backends, language menu and spelling-token optimization |
 | 2026-10-13 | minor | Replaced native Voikko with pinned Rust crates and embedded dictionary; unsafe exception removed, Finnish tests enabled by default; Windows/Apple Silicon runtime checks pending |
 | 2026-10-12 | minor | Updated to 0.6.1; Finnish Voikko integrated with upstream proofing languages, preferences and language menu |
 | 2026-10-12 | minor | M15: Portuguese proofing (pt-BR spelling from the installed VERO dictionary, suggestions, grammar, hyphenation; Review › Language gains Português (Brasil)) |
