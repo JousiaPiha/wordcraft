@@ -832,7 +832,7 @@ fn hungarian_locales_and_saved_preference_work_without_changing_the_document() {
     for tag in ["hu", "hu-HU", "hu_HU.UTF-8", "HU_hu.UTF-8@euro", "hu-Latn-HU"] {
         assert_eq!(lang_from_tag(tag), Some(hu), "{tag}");
     }
-    assert_eq!(first_supported(["fi-FI", "hu-HU", "en-US"]), Some(hu));
+    assert_eq!(first_supported(["ga-IE", "hu-HU", "en-US"]), Some(hu));
     assert_eq!(normalize_pref("HU"), Some("hu"));
     let mut app = crate::WordApp::new(wordcraft_engine::Session::new(wordcraft_engine::sample::sample_document()), Default::default());
     let before = serde_json::to_value(&app.session.doc).unwrap();
@@ -989,7 +989,8 @@ fn polish_covers_every_key_of_every_other_catalog() {
     let polish = keys(lang("pl").0.source);
     // Italian and Hungarian still carry "Style: APA", which the interface no longer shows;
     // Hungarian and Bulgarian also name the citation styles, and Bulgarian has a few one-line
-    for other in Lang::all().filter(|l| *l != Lang::EN && !matches!(l.code(), "pl" | "it" | "hu" | "bg" | "vi" | "sv" | "hr")) {
+    // strings. Finnish carries four regional German proofing strings no other catalog has yet.
+    for other in Lang::all().filter(|l| *l != Lang::EN && !matches!(l.code(), "pl" | "it" | "hu" | "bg" | "vi" | "sv" | "hr" | "fi")) {
         let mut missing: Vec<String> = keys(other.0.source).difference(&polish).cloned().collect();
         missing.sort();
         assert!(missing.is_empty(), "pl lacks {}'s {missing:?}", other.code());
@@ -1327,8 +1328,9 @@ fn croatian_covers_the_entire_existing_interface_catalog_and_keeps_count_labels_
     use std::collections::HashSet;
     let keys = |source| parse_entries(source).0.into_iter().map(|e| e.source).collect::<HashSet<_>>();
     let hr = lang("hr");
-    // Every key of every other catalog, and no catalog errors.
-    for other in Lang::all().filter(|l| *l != Lang::EN && l.code() != "hr") {
+    // Every key of every other catalog, and no catalog errors. Finnish carries four regional German
+    // proofing strings that no other catalog has yet, so it is not a reference here.
+    for other in Lang::all().filter(|l| *l != Lang::EN && !matches!(l.code(), "hr" | "fi")) {
         let mut missing: Vec<String> = keys(other.0.source).difference(&keys(hr.0.source)).cloned().collect();
         missing.sort();
         // Italian and Hungarian still carry "Style: APA", which the interface no longer shows.
@@ -1499,8 +1501,9 @@ fn vietnamese_covers_existing_catalog_keys_with_an_explicit_preview_fallback() {
     assert_eq!(trc(vi, "preview", "Title"), "Tiêu đề");
     assert_eq!(trc(vi, "preview", "Title"), tr(vi, "Title"));
     // Compare complete (context, source) keys so a contextual entry cannot hide a missing plain
-    // translation, or silently satisfy another context's key.
-    for other in Lang::all().filter(|l| *l != Lang::EN && l.code() != "vi") {
+    // translation, or silently satisfy another context's key. Finnish carries four regional German
+    // proofing strings that no other catalog has yet, so it is not a reference here.
+    for other in Lang::all().filter(|l| *l != Lang::EN && !matches!(l.code(), "vi" | "fi")) {
         let (entries, errors) = parse_entries(other.0.source);
         assert!(errors.is_empty(), "{}: {errors:?}", other.code());
         let keys: HashSet<_> = entries.into_iter().map(|e| (e.context, e.source)).collect();
@@ -1550,4 +1553,86 @@ fn bundled_interface_fonts_cover_vietnamese_letters() {
         }
     }
     assert!(!lang("vi").uses_cjk());
+}
+
+#[test]
+fn finnish_locales_and_saved_preference_work_without_changing_the_document() {
+    let fi = lang("fi");
+    for tag in ["fi", "fi-FI", "fi_FI.UTF-8", "FI-fi"] {
+        assert_eq!(lang_from_tag(tag), Some(fi), "{tag}");
+    }
+    assert_eq!(first_supported([UNSUPPORTED, "fi-FI", "en-US"]), Some(fi));
+    let mut app = crate::WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), Default::default());
+    let before = serde_json::to_value(&app.session.doc).unwrap();
+    let result = app.run("ui.language", serde_json::json!({"value": "FI"})).unwrap();
+    assert_eq!(result["effective"], "fi");
+    assert_eq!(app.ui.language, "fi");
+    assert!(result["available"].as_array().unwrap().iter().any(|l| l["code"] == "fi" && l["name"] == "Suomi"));
+    assert_eq!(serde_json::to_value(&app.session.doc).unwrap(), before);
+    let saved = serde_json::to_string(&app.ui).unwrap();
+    let restored: crate::UiState = serde_json::from_str(&saved).unwrap();
+    assert_eq!(Lang::from_pref(&restored.language), fi);
+    assert_eq!(fi.name(), "Suomi");
+}
+
+#[test]
+fn finnish_covers_every_key_of_every_other_catalog() {
+    use std::collections::HashSet;
+    let keys = |source| parse_entries(source).0.into_iter().map(|e| (e.context, e.source)).collect::<HashSet<_>>();
+    let fi_keys = keys(lang("fi").0.source);
+    for l in &LANGUAGES {
+        let missing: Vec<_> = keys(l.source).difference(&fi_keys).cloned().collect();
+        assert!(missing.is_empty(), "{}: {missing:?}", l.code);
+    }
+    assert!(parse_entries(lang("fi").0.source).1.is_empty());
+    let fi = lang("fi");
+    for (source, expected) in [
+        ("File", "Tiedosto"),
+        ("Home", "Aloitus"),
+        ("Insert", "Lisää"),
+        ("Font", "Fontti"),
+        ("Paragraph", "Kappale"),
+        ("Save", "Tallenna"),
+        ("Heading 1", "Otsikko 1"),
+        ("Track Changes", "Muutosten seuranta"),
+        ("German (Austria)", "Saksa (Itävalta)"),
+        ("German (Switzerland)", "Saksa (Sveitsi)"),
+        (
+            "Proofing follows each text's language. Use Review › Language to change it.",
+            "Oikoluku noudattaa kunkin tekstin kieltä. Voit vaihtaa sen kohdasta Tarkista › Kieli.",
+        ),
+        ("WordCraft", "WordCraft"),
+        ("unknown future label", "unknown future label"),
+    ] {
+        assert_eq!(tr(fi, source), expected, "{source}");
+    }
+    // The search hint's example must find the command it names.
+    assert!(tr(fi, "Type a command, e.g. \"insert table\"").contains(&tr(fi, "Insert Table").to_lowercase()));
+    assert_eq!(fmt(tr(fi, "Page {page} of {pages}"), &[("page", "3"), ("pages", "9")]), "Sivu 3/9");
+    // Count-neutral captions read right for every number.
+    for count in [0, 1, 2, 5, 21] {
+        let words = count.to_string();
+        assert_eq!(fmt(tr(fi, "{words} words"), &[("words", &words)]), format!("Sanoja: {count}"));
+    }
+}
+
+#[test]
+fn bundled_interface_fonts_cover_finnish_letters() {
+    let db = wordcraft_fonts::FontDb::with_font_dirs(Vec::new());
+    let (entries, errors) = parse_entries(lang("fi").0.source);
+    assert!(errors.is_empty());
+    let chars: std::collections::HashSet<char> = entries
+        .iter()
+        .flat_map(|e| e.translation.chars())
+        .filter(|c| ('\u{00C0}'..='\u{00FF}').contains(c) || matches!(c, '”' | '–'))
+        .chain("ÄÖÅäöåŠšŽž".chars())
+        .collect();
+    for (family, style) in [("Inter", "Regular"), ("Inter", "Medium"), ("Inter", "SemiBold"), ("JetBrains Mono", "Regular")] {
+        let face = db.face(family, style);
+        assert_eq!(face.family, family, "must use the bundled interface face");
+        for ch in &chars {
+            assert_ne!(face.glyph_for(*ch), 0, "{family} {style} lacks {ch}");
+        }
+    }
+    assert!(!lang("fi").uses_cjk());
 }
