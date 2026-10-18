@@ -2634,3 +2634,28 @@ preview	Title	Otsikko
 	✓ None	✓ Ei mitään
 	➕ New comment	➕ Uusi kommentti
 	📂  Browse…	📂  Selaa…
+
+# Main's newer interface strings, added when the Finnish catalog merged current main.
+	All Fonts	Kaikki fontit
+	Article I.	Artikla I.
+	AutoFit behavior	Automaattinen sovitus
+	AutoFit to contents	Sovita sisältöön
+	AutoFit to window	Sovita ikkunaan
+	Chapter 1	Luku 1
+	Commas	Pilkut
+	Indonesian	Indonesia
+	Initial column width:	Sarakkeen alkuleveys:
+	Insert Spike	Lisää kokoelma
+	Merge cells before split	Yhdistä solut ennen jakoa
+	Moved from:	Siirretty kohteesta:
+	Moved to:	Siirretty kohteeseen:
+	Multilevel List Library	Monitasoisten luetteloiden kirjasto
+	Other:	Muu:
+	Recently Used Fonts	Viimeksi käytetyt fontit
+	Section 1.01	Jakso 1.01
+	Selected text	Valittu teksti
+	Separate text at	Erota teksti kohdassa
+	Spike	Kokoelma
+	Table size	Taulukon koko
+	The measurement must be between {min} and {max}.	Mitan on oltava välillä {min}–{max}.
+	The number must be between 1 and {max}.	Numeron on oltava välillä 1–{max}.
