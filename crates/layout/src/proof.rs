@@ -152,6 +152,22 @@ mod tests {
     }
 
     #[test]
+    fn mixed_finnish_preserves_new_upstream_grammar() {
+        for (tag, tail, start, end) in [("tr-TR", "ev ev.", 10, 12), ("ru-RU", "дом дом.", 7, 20), ("cs-CZ", "město město.", 7, 20)] {
+            let text = format!("Äiti, {tail}");
+            let mut doc = wordcraft_doc::Document::from_text(&text);
+            doc.styles.default_chr.lang = Some("fi-FI".into());
+            doc.format_range(&wordcraft_doc::Pos::body(0, 7), &wordcraft_doc::Pos::body(0, text.len()), &|c| c.lang = Some(tag.into())).unwrap();
+            let p = doc.para_at(&wordcraft_doc::Pos::body(0, 0)).unwrap();
+            let runs = crate::para::proof_runs(&doc, p, None);
+            let issues = crate::para::paragraph_issues(p, &runs, &Default::default(), true);
+            let grammar: Vec<_> = issues.iter().filter(|i| i.kind == wordcraft_proof::IssueKind::Grammar && i.lang.code() != "fi").collect();
+            assert_eq!(grammar.len(), 1, "{tag}: {issues:?}");
+            assert_eq!((grammar[0].start, grammar[0].end), (start, end), "{tag}");
+        }
+    }
+
+    #[test]
     fn voikko_uses_upstream_preferences_and_exclusions() {
         let mut doc = wordcraft_doc::Document::from_text("KOIRRA koirra. Äiti on on kotona.");
         doc.styles.default_chr.lang = Some("fi-FI".into());

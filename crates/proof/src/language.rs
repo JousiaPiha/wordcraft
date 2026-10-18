@@ -42,6 +42,9 @@ pub fn status(language: &str) -> Status {
             crate::ProofLang::Pt => crate::pt::has_dictionary(),
             crate::ProofLang::It => crate::it::has_dictionary(),
             crate::ProofLang::Hr => crate::hr::has_dictionary(),
+            crate::ProofLang::Tr => crate::tr::has_dictionary(),
+            crate::ProofLang::Ru => crate::ru::has_dictionary(),
+            crate::ProofLang::Cs => crate::cs::has_dictionary(),
             _ => return Status { available: false, backend: "none", reason: Some("No proofing dictionary for this language".into()) },
         };
         Status { available, backend: "hunspell", reason: (!available).then(|| "No installed Hunspell dictionary for this language".into()) }
@@ -76,6 +79,9 @@ pub fn check_grammar_in_context(text: &str, language: &str, sentence_start: bool
             crate::ProofLang::Pt => crate::pt::grammar::check_with_start(text, sentence_start),
             crate::ProofLang::It => crate::it::grammar::check_with_start(text, sentence_start),
             crate::ProofLang::Hr => crate::hr::grammar::check_with_start(text, sentence_start),
+            crate::ProofLang::Tr => crate::tr::grammar::check_with_start(text, sentence_start),
+            crate::ProofLang::Ru => crate::ru::grammar::check_with_start(text, sentence_start),
+            crate::ProofLang::Cs => crate::cs::grammar::check(text),
             _ => Vec::new(),
         }
     }
@@ -163,18 +169,28 @@ mod tests {
     fn upstream_hunspell_languages_remain_available() {
         crate::it::test_dict::install();
         crate::hr::test_dict::install();
-        for tag in ["it-IT", "hr-HR"] {
+        crate::ru::test_dict::install();
+        crate::cs::test_dict::install();
+        for tag in ["it-IT", "hr-HR", "ru-RU", "cs-CZ"] {
             let result = status(tag);
             assert!(result.available, "{tag}: {:?}", result.reason);
             assert_eq!(result.backend, "hunspell");
         }
+        // Turkish tests also exercise the real installed dictionary when present.
+        // Do not replace that shared dictionary with a synthetic partial word list.
+        let turkish = status("tr-TR");
+        assert_eq!(turkish.backend, "hunspell");
+        assert_eq!(turkish.available, crate::tr::has_dictionary());
     }
 
     #[test]
     fn upstream_grammar_respects_language_boundaries() {
-        for (tag, text) in [("it-IT", "questo questo."), ("hr-HR", "ovo ovo.")] {
+        for (tag, text) in [("it-IT", "questo questo."), ("hr-HR", "ovo ovo."), ("tr-TR", "ev ev."), ("ru-RU", "дом дом.")] {
             let issues = check_grammar_in_context(text, tag, false, true);
-            assert!(issues.iter().any(|i| i.start == 0 && i.end == text.len() - 1), "{tag}: repeated word must be checked: {issues:?}");
+            assert!(
+                issues.iter().any(|i| i.start == if tag == "tr-TR" { 3 } else { 0 } && i.end == text.len() - 1),
+                "{tag}: repeated word must be checked: {issues:?}"
+            );
             assert!(
                 !issues.iter().any(|i| i.start == 0 && i.end == text.find(' ').unwrap()),
                 "{tag}: mid-sentence span must not require a capital: {issues:?}"
@@ -185,6 +201,13 @@ mod tests {
                 "{tag}: actual sentence start needs a capital: {at_start:?}"
             );
         }
+    }
+
+    #[test]
+    fn czech_grammar_remains_available_in_mixed_paragraphs() {
+        let text = "město město.";
+        let issues = check_grammar_in_context(text, "cs-CZ", false, true);
+        assert!(issues.iter().any(|i| i.start == 0 && i.end == text.len() - 1 && i.lang == crate::ProofLang::Cs), "{issues:?}");
     }
 
     #[test]

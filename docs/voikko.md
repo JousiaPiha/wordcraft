@@ -1,6 +1,6 @@
 # Finnish proofing with Voikko
 
-> **Last reviewed:** 2026-10-14 · **Last updated:** 2026-10-14 · **Change:** minor (upstream 0.7.0 sync)
+> **Last reviewed:** 2026-10-18 · **Last updated:** 2026-10-18 · **Change:** minor (upstream 0.8.0 sync)
 
 WordCraft includes Finnish spelling, correction suggestions, grammar checking and
 hyphenation through the Rust implementation of Voikko. The engine and Finnish
@@ -168,6 +168,7 @@ opened for visual inspection.
 
 | Checklist item | Automated packaged-app result | Visual result |
 | --- | --- | --- |
+| 2026-10-18 | minor | Synced upstream 0.8.0; preserved Finnish alongside new Czech, Russian and Turkish proofing and inherited Language dialog choices |
 | 2026-10-14 | minor | Synced upstream 0.7.0; retained Finnish and integrated Italian/Croatian routing and upstream spelling optimization |
 | Finnish default and availability | `fi-FI`, `voikko-rust`, available | Status bar displays Finnish |
 | `Äiti ja koirra.` | Only spelling issue is `koirra`; `koira` offered; correction and undo pass, including clicking the visible context-menu suggestion | Red underline only on `koirra`; suggestion menu displays `koira` |
@@ -221,6 +222,24 @@ found no important proofing merge regressions.
 The owner also confirmed manual acceptance of the previous Linux x86_64 `.deb`.
 The Mac acceptance above applies to the earlier tested commit; the merged version
 has not been retested on Mac or Windows.
+
+## Upstream sync (2026-10-18)
+
+Merged upstream `f2e15cf` (0.8.0, 241 commits after the previous base). Finnish
+remains embedded. The adapter includes upstream Czech, Russian and Turkish
+availability and grammar. Russian and Turkish checks preserve sentence context
+when a paragraph mixes these languages with Finnish. Regression tests cover
+backend availability, false sentence-start capitals and UTF-8 issue offsets in
+mixed-language paragraphs. The Language dialog keeps inherited proofing choices
+and the Finnish integration's table-aware language resolution.
+
+Linux x86_64, Rust 1.95.0: all six `cargo +1.95.0 xtask ci` gates pass,
+with 2,803 tests passed, no failures, two ignored tests, and all 17 WASM-safe
+crates checked. A sequential proofing run also passes all 211 tests. The merge
+includes equivalent match-guard/boolean rewrites for strict Clippy checks.
+Independent review found no remaining merge-specific issues after removing a
+partial Turkish test dictionary that could interfere with upstream tests.
+Mac and Windows runtime checks have not been repeated for this revision.
 
 ## Revision history
 
