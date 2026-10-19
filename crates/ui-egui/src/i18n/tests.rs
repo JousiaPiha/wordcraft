@@ -990,9 +990,10 @@ fn polish_covers_every_key_of_every_other_catalog() {
     // Italian and Hungarian still carry "Style: APA", which the interface no longer shows;
     // Hungarian and Bulgarian also name the citation styles, and Bulgarian has a few one-line
     // pieces of gallery labels. Polish matches every other catalog, including the built-in style
-    // names, citation styles and equation gallery. Finnish carries four regional German proofing
-    // strings no other catalog has yet.
-    for other in Lang::all().filter(|l| *l != Lang::EN && !matches!(l.code(), "pl" | "it" | "hu" | "bg" | "vi" | "sv" | "hr" | "fi")) {
+    // names, citation styles and equation gallery. French carries newer strings (paper sizes,
+    // bookmarks, printing) the Polish catalog hasn't caught up with yet; Finnish also carries
+    // newer paper-size, bookmark, print and regional German proofing strings.
+    for other in Lang::all().filter(|l| *l != Lang::EN && !matches!(l.code(), "pl" | "it" | "hu" | "bg" | "vi" | "sv" | "hr" | "fi" | "fr")) {
         let mut missing: Vec<String> = keys(other.0.source).difference(&polish).cloned().collect();
         missing.sort();
         assert!(missing.is_empty(), "pl lacks {}'s {missing:?}", other.code());
@@ -1336,8 +1337,9 @@ fn croatian_covers_the_entire_existing_interface_catalog_and_keeps_count_labels_
     use std::collections::HashSet;
     let keys = |source| parse_entries(source).0.into_iter().map(|e| e.source).collect::<HashSet<_>>();
     let hr = lang("hr");
-    // Every key of every other catalog, and no catalog errors. Finnish carries four regional German
-    // proofing strings that no other catalog has yet, so it is not a reference here.
+    // Every key of every other catalog, and no catalog errors. Finnish carries newer paper-size,
+    // bookmark, print and regional German proofing strings that no other catalog has yet, so it is
+    // not a reference here.
     for other in Lang::all().filter(|l| *l != Lang::EN && !matches!(l.code(), "hr" | "fi")) {
         let mut missing: Vec<String> = keys(other.0.source).difference(&keys(hr.0.source)).cloned().collect();
         missing.sort();
@@ -1509,8 +1511,9 @@ fn vietnamese_covers_existing_catalog_keys_with_an_explicit_preview_fallback() {
     assert_eq!(trc(vi, "preview", "Title"), "Tiêu đề");
     assert_eq!(trc(vi, "preview", "Title"), tr(vi, "Title"));
     // Compare complete (context, source) keys so a contextual entry cannot hide a missing plain
-    // translation, or silently satisfy another context's key. Finnish carries four regional German
-    // proofing strings that no other catalog has yet, so it is not a reference here.
+    // translation, or silently satisfy another context's key. Finnish carries newer paper-size,
+    // bookmark, print and regional German proofing strings that no other catalog has yet, so it is
+    // not a reference here.
     for other in Lang::all().filter(|l| *l != Lang::EN && !matches!(l.code(), "vi" | "fi")) {
         let (entries, errors) = parse_entries(other.0.source);
         assert!(errors.is_empty(), "{}: {errors:?}", other.code());

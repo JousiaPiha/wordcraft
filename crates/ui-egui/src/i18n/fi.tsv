@@ -2659,3 +2659,38 @@ preview	Title	Otsikko
 	Table size	Taulukon koko
 	The measurement must be between {min} and {max}.	Mitan on oltava välillä {min}–{max}.
 	The number must be between 1 and {max}.	Numeron on oltava välillä 1–{max}.
+	Added 1 font	Lisättiin 1 fontti
+	Added {n} fonts	Lisättiin {n} fonttia
+	Any field	Mikä tahansa kenttä
+	Distance from text	Etäisyys tekstistä
+	Distance from text:	Etäisyys tekstistä:
+	Drop Cap Options…	Anfangin asetukset…
+	Dropped	Tekstissä
+	Find in list:	Etsi luettelosta:
+	Hide Quick Access Toolbar	Piilota pikatyökalurivi
+	Import…	Tuo…
+	In margin	Marginaalissa
+	Kerning for fonts:	Fonttien välistys:
+	Lines to drop:	Anfangin rivit:
+	Lock aspect ratio	Lukitse kuvasuhde
+	Matches: {count}	Osumia: {count}
+	No items to show.	Ei näytettäviä kohteita.
+	Original size	Alkuperäinen koko
+	Points and above	Pisteet ja suuremmat
+	Relative to original picture size	Suhteessa kuvan alkuperäiseen kokoon
+	Show Quick Access Toolbar	Näytä pikatyökalurivi
+	Show only records that will be merged	Näytä vain yhdistettävät tietueet
+	Type a size in any unit, such as 5 cm or 300 px. The other side follows, so the picture keeps its proportions.	Kirjoita koko millä tahansa yksiköllä, esimerkiksi 5 cm tai 300 px. Toinen puoli mukautuu, jotta kuva säilyttää suhteensa.
+	nothing is selected	mitään ei ole valittu
+	select a picture or shape first	valitse ensin kuva tai muoto
+	select recipients first	valitse ensin vastaanottajat
+	select two or more pictures or shapes first (Shift+click)	valitse ensin vähintään kaksi kuvaa tai muotoa (Shift+napsautus)
+	text boxes can't go inside a text box	tekstiruudut eivät voi olla tekstiruudun sisällä
+	the cursor isn't in a table	kohdistin ei ole taulukossa
+	the paragraph is empty	kappale on tyhjä
+	the paragraph starts with a space	kappale alkaa välilyönnillä
+	{added}; {count} couldn't be read: {names}	{added}; {count} ei voitu lukea: {names}
+	{added}; {n} skipped (limit {max})	{added}; {n} ohitettiin (raja {max})
+	{names} and {n} more	{names} ja {n} muuta
+	{name} options	{name}-asetukset
+	{width} × {height} pixels	{width} × {height} pikseliä
