@@ -1586,6 +1586,37 @@ fn finnish_locales_and_saved_preference_work_without_changing_the_document() {
     assert_eq!(fi.name(), "Suomi");
 }
 
+/// #2740: the picker in File › Options › Language offers Suomi, and choosing it switches the
+/// interface to Finnish without touching the document.
+#[test]
+fn the_options_language_picker_switches_to_finnish_without_changing_the_document() {
+    use egui_kittest::kittest::Queryable;
+
+    let mut a = crate::WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), Default::default());
+    a.run("file.options", serde_json::json!({"pane": "language"})).unwrap();
+    let before = serde_json::to_value(&a.session.doc).unwrap();
+    let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(1440.0, 900.0)).build_ui_state(
+        |ui, app: &mut crate::WordApp| {
+            let ctx = ui.ctx().clone();
+            app.logic(&ctx);
+            app.ui(ui);
+        },
+        a,
+    );
+    h.run_steps(4);
+    h.get_by_role(egui::accesskit::Role::ComboBox).click();
+    h.run_steps(4);
+    // Suomi is the last language in the scrollable popup: bring its row into view, then click it.
+    h.get_by_label("Suomi").scroll_to_me();
+    h.run_steps(4);
+    h.get_by_label("Suomi").click();
+    h.run_steps(4);
+    assert_eq!(h.state().ui.language, "fi");
+    assert_eq!(Lang::from_pref(&h.state().ui.language), lang("fi"));
+    assert_eq!(serde_json::to_value(&h.state().session.doc).unwrap(), before, "the document is untouched");
+    assert_eq!(h.get_by_role(egui::accesskit::Role::ComboBox).value().as_deref(), Some("Suomi"), "the picker shows the choice");
+}
+
 #[test]
 fn finnish_covers_every_key_of_every_other_catalog() {
     use std::collections::HashSet;
