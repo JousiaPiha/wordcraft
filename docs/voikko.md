@@ -1,6 +1,6 @@
 # Finnish proofing with Voikko
 
-> **Last reviewed:** 2026-10-18 · **Last updated:** 2026-10-18 · **Change:** minor (upstream 0.8.0 sync)
+> **Last reviewed:** 2026-10-22 · **Last updated:** 2026-10-22 · **Change:** minor (upstream 0.10.0 sync)
 
 WordCraft includes Finnish spelling, correction suggestions, grammar checking and
 hyphenation through the Rust implementation of Voikko. The engine and Finnish
@@ -168,6 +168,7 @@ opened for visual inspection.
 
 | Checklist item | Automated packaged-app result | Visual result |
 | --- | --- | --- |
+| 2026-10-22 | minor | Synced upstream 0.10.0 at `9130181a`; retained embedded Finnish proofing, English regional spelling, Indonesian availability and list-item grammar context |
 | 2026-10-18 | minor | Synced upstream 0.8.0; preserved Finnish alongside new Czech, Russian and Turkish proofing and inherited Language dialog choices |
 | 2026-10-14 | minor | Synced upstream 0.7.0; retained Finnish and integrated Italian/Croatian routing and upstream spelling optimization |
 | Finnish default and availability | `fi-FI`, `voikko-rust`, available | Status bar displays Finnish |
@@ -240,6 +241,20 @@ includes equivalent match-guard/boolean rewrites for strict Clippy checks.
 Independent review found no remaining merge-specific issues after removing a
 partial Turkish test dictionary that could interfere with upstream tests.
 Mac and Windows runtime checks have not been repeated for this revision.
+
+## Upstream sync (2026-10-22)
+
+Merged upstream `9130181a` (0.10.0, 843 commits after the previous base).
+Finnish remains embedded. Mixed Finnish paragraphs preserve British and Canadian
+spelling variants and the upstream list-item capitalization rule. The adapter
+reports Indonesian dictionary availability and delegates non-Finnish grammar to
+the new upstream context-aware dispatcher, removing the older per-language
+wrappers. Table-language inheritance also follows upstream's skipped grid columns.
+Regression tests cover regional spelling, availability, list context and table
+proofing. The new text-box pagination fixture uses explicit filler spacing so its
+page counts do not depend on host font metrics; its original assertions remain.
+The native workspace suite passed 3,926 tests (four upstream tests ignored).
+The corrected fixture also passed independently after review.
 
 ## Revision history
 

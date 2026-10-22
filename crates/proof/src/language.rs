@@ -12,7 +12,7 @@ pub struct Status {
 }
 
 fn english(language: &str) -> bool {
-    crate::ProofLang::from_tag(Some(language)) == crate::ProofLang::En
+    crate::ProofLang::from_tag(Some(language)).is_english()
 }
 
 pub fn finnish(language: &str) -> bool {
@@ -45,6 +45,7 @@ pub fn status(language: &str) -> Status {
             crate::ProofLang::Tr => crate::tr::has_dictionary(),
             crate::ProofLang::Ru => crate::ru::has_dictionary(),
             crate::ProofLang::Cs => crate::cs::has_dictionary(),
+            crate::ProofLang::Id => crate::id::has_dictionary(),
             _ => return Status { available: false, backend: "none", reason: Some("No proofing dictionary for this language".into()) },
         };
         Status { available, backend: "hunspell", reason: (!available).then(|| "No installed Hunspell dictionary for this language".into()) }
@@ -69,32 +70,15 @@ pub fn check_grammar(text: &str, language: &str) -> Vec<Issue> {
 
 /// A language/exclusion boundary need not be a sentence or paragraph boundary.
 pub fn check_grammar_in_context(text: &str, language: &str, sentence_start: bool, paragraph_end: bool) -> Vec<Issue> {
-    if english(language) {
-        crate::check_grammar_with_start(text, sentence_start)
-    } else if finnish(language) {
+    if finnish(language) {
         backend::grammar(text, sentence_start, paragraph_end)
     } else {
-        match crate::ProofLang::from_tag(Some(language)) {
-            crate::ProofLang::Pl => crate::pl::grammar::check_with_start(text, sentence_start),
-            crate::ProofLang::Pt => crate::pt::grammar::check_with_start(text, sentence_start),
-            crate::ProofLang::It => crate::it::grammar::check_with_start(text, sentence_start),
-            crate::ProofLang::Hr => crate::hr::grammar::check_with_start(text, sentence_start),
-            crate::ProofLang::Tr => crate::tr::grammar::check_with_start(text, sentence_start),
-            crate::ProofLang::Ru => crate::ru::grammar::check_with_start(text, sentence_start),
-            crate::ProofLang::Cs => crate::cs::grammar::check(text),
-            _ => Vec::new(),
-        }
+        crate::grammar_in(text, crate::ProofLang::from_tag(Some(language)), sentence_start)
     }
 }
 
 pub fn suggest(word: &str, language: &str, max: usize) -> Vec<String> {
-    if english(language) {
-        crate::suggest(word, max)
-    } else if finnish(language) {
-        backend::suggest(word, max)
-    } else {
-        crate::suggest_in(word, max, crate::ProofLang::from_tag(Some(language)))
-    }
+    if finnish(language) { backend::suggest(word, max) } else { crate::suggest_in(word, max, crate::ProofLang::from_tag(Some(language))) }
 }
 
 /// Break points are character indices, matching the existing English API.
@@ -164,6 +148,17 @@ mod backend {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn upstream_english_variants_and_indonesian_remain_available() {
+        for tag in ["en-US", "en-GB", "en-CA", "en-AU"] {
+            assert!(status(tag).available, "{tag}");
+        }
+        crate::id::test_dict::install();
+        let indonesian = status("id-ID");
+        assert!(indonesian.available);
+        assert_eq!(indonesian.backend, "hunspell");
+    }
 
     #[test]
     fn upstream_hunspell_languages_remain_available() {
@@ -244,7 +239,9 @@ mod tests {
     fn dispatch_does_not_apply_english_to_other_languages() {
         assert!(check_spelling("koirra", "sv-SE").is_empty());
         assert!(!status("sv-SE").available);
-        assert_eq!(check_spelling("helo", "EN-gb"), crate::check_spelling("helo"));
+        let british = check_spelling("helo", "EN-gb");
+        assert_eq!(british.len(), 1);
+        assert_eq!((british[0].start, british[0].end, british[0].lang), (0, 4, crate::ProofLang::EnGb));
         assert!(check_grammar("a apple", "sv-SE").is_empty());
         assert!(hyphenate("university", "sv-SE", &crate::hyphen::Limits::default()).is_empty());
         assert_eq!(suggest("wrold", "", 3), crate::suggest("wrold", 3));

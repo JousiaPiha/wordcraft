@@ -70,26 +70,40 @@ fn spans_from_ranges(p: &Paragraph, ranges: impl Iterator<Item = (Range<usize>, 
 }
 
 pub fn issues(p: &Paragraph, styles: &StyleSheet, table: Option<&CharProps>) -> Vec<Issue> {
-    issues_in_spans(p, spans(p, styles, table), &wordcraft_proof::Options::default(), true)
+    issues_in_spans(p, spans(p, styles, table), &wordcraft_proof::Options::default(), true, false)
 }
 
 /// Paragraphs containing Finnish use intact language spans, so grammar rules
 /// cannot read across Finnish boundaries or hidden/deleted/no-proof runs.
-pub(crate) fn issues_for_runs(p: &Paragraph, runs: &[crate::para::ProofRun], options: &wordcraft_proof::Options, grammar: bool) -> Vec<Issue> {
-    let ranges = runs
-        .iter()
-        .filter(|r| !r.skip)
-        .map(|r| (r.range.clone(), if r.lang == wordcraft_proof::ProofLang::Other { "x-none" } else { r.lang.code() }.into()));
-    issues_in_spans(p, spans_from_ranges(p, ranges), options, grammar)
+pub(crate) fn issues_for_runs(
+    p: &Paragraph,
+    runs: &[crate::para::ProofRun],
+    options: &wordcraft_proof::Options,
+    grammar: bool,
+    list_item: bool,
+) -> Vec<Issue> {
+    let ranges = runs.iter().filter(|r| !r.skip).map(|r| {
+        (
+            r.range.clone(),
+            match r.lang {
+                wordcraft_proof::ProofLang::EnGb => "en-GB",
+                wordcraft_proof::ProofLang::EnCa => "en-CA",
+                wordcraft_proof::ProofLang::Other => "x-none",
+                lang => lang.code(),
+            }
+            .into(),
+        )
+    });
+    issues_in_spans(p, spans_from_ranges(p, ranges), options, grammar, list_item)
 }
 
-fn issues_in_spans(p: &Paragraph, spans: Vec<Span>, options: &wordcraft_proof::Options, grammar: bool) -> Vec<Issue> {
+fn issues_in_spans(p: &Paragraph, spans: Vec<Span>, options: &wordcraft_proof::Options, grammar: bool, list_item: bool) -> Vec<Issue> {
     let mut out = Vec::new();
     for span in spans {
         let Some(text) = p.text.get(span.range.clone()) else { continue };
         let mut issues = language::check_spelling_with(text, &span.language, options);
         let prefix = p.text.get(..span.range.start).unwrap_or("").trim_end();
-        let sentence_start = prefix.is_empty() || prefix.ends_with(['.', '!', '?']);
+        let sentence_start = (prefix.is_empty() && !list_item) || prefix.ends_with(['.', '!', '?']);
         if grammar {
             issues.extend(language::check_grammar_in_context(text, &span.language, sentence_start, span.range.end == p.text.len()));
         }
@@ -131,7 +145,7 @@ mod tests {
                 doc.format_range(&wordcraft_doc::Pos::body(0, 0), &wordcraft_doc::Pos::body(0, 5), &|c| c.lang = Some("fi-FI".into())).unwrap();
                 let p = doc.para_at(&wordcraft_doc::Pos::body(0, 0)).unwrap();
                 let runs = crate::para::proof_runs(&doc, p, None);
-                let issues = crate::para::paragraph_issues(p, &runs, &wordcraft_proof::Options::default(), true);
+                let issues = crate::para::paragraph_issues(p, &runs, &wordcraft_proof::Options::default(), true, false);
                 assert!(!issues.iter().any(|i| i.start == 6 && i.suggestions.contains(&capital.into())), "{issues:?}");
                 assert_eq!(issues.iter().any(|i| i.start > 6 && i.suggestions.contains(&capital.into())), expected, "{issues:?}");
             }
@@ -146,8 +160,65 @@ mod tests {
                 .unwrap();
             let p = doc.para_at(&wordcraft_doc::Pos::body(0, 0)).unwrap();
             let runs = crate::para::proof_runs(&doc, p, None);
-            let issues = crate::para::paragraph_issues(p, &runs, &wordcraft_proof::Options::default(), true);
+            let issues = crate::para::paragraph_issues(p, &runs, &wordcraft_proof::Options::default(), true, false);
             assert!(!issues.iter().any(|i| i.kind == wordcraft_proof::IssueKind::Grammar && i.lang == wordcraft_proof::ProofLang::En), "{issues:?}");
+        }
+    }
+
+    #[test]
+    fn skipped_table_grid_columns_keep_the_effective_finnish_language() {
+        use wordcraft_doc::styles::{Style, StyleKind, TableStyleParts};
+        let mut doc = wordcraft_doc::Document::new();
+        doc.styles.styles.push(Style {
+            id: "GridLanguage".into(),
+            name: "Grid language".into(),
+            kind: StyleKind::Table,
+            chr: CharProps { lang: Some("fi-FI".into()), no_proof: Some(false), ..Default::default() },
+            table: Some(TableStyleParts {
+                first_col_chr: CharProps { lang: Some("en-US".into()), no_proof: Some(true), ..Default::default() },
+                ..Default::default()
+            }),
+            ..Default::default()
+        });
+        let mut table = wordcraft_doc::Table::new(1, 1, 300.0);
+        table.props.style = Some("GridLanguage".into());
+        table.rows[0].props.grid_before = 1;
+        let chr = crate::table::proof_char_props(&doc, &table, 0, 0).unwrap();
+        assert_eq!(chr.lang.as_deref(), Some("fi-FI"));
+        assert_eq!(chr.no_proof, Some(false));
+        let p = Paragraph::with_text("koirra", Default::default());
+        assert!(
+            issues(&p, &doc.styles, Some(&chr))
+                .iter()
+                .any(|i| i.kind == wordcraft_proof::IssueKind::Spelling && i.lang == wordcraft_proof::ProofLang::Fi)
+        );
+    }
+
+    #[test]
+    fn mixed_finnish_preserves_english_regions() {
+        for (tag, words, wrong, right) in [("en-GB", "color colour", "color", "colour"), ("en-CA", "organize organise", "organise", "organize")] {
+            let text = format!("Kissa. {words}");
+            let mut doc = wordcraft_doc::Document::from_text(&text);
+            doc.styles.default_chr.lang = Some("fi-FI".into());
+            doc.format_range(&wordcraft_doc::Pos::body(0, 7), &wordcraft_doc::Pos::body(0, text.len()), &|c| c.lang = Some(tag.into())).unwrap();
+            let p = doc.para_at(&wordcraft_doc::Pos::body(0, 0)).unwrap();
+            let runs = crate::para::proof_runs(&doc, p, None);
+            let issues = crate::para::paragraph_issues(p, &runs, &Default::default(), false, false);
+            assert!(issues.iter().any(|i| p.text.get(i.start..i.end) == Some(wrong)), "{tag}: {issues:?}");
+            assert!(!issues.iter().any(|i| p.text.get(i.start..i.end) == Some(right)), "{tag}: {issues:?}");
+        }
+    }
+
+    #[test]
+    fn mixed_finnish_list_item_keeps_upstream_capitalization_rule() {
+        let mut doc = wordcraft_doc::Document::from_text("lowercase item Äiti");
+        doc.styles.default_chr.lang = Some("fi-FI".into());
+        doc.format_range(&wordcraft_doc::Pos::body(0, 0), &wordcraft_doc::Pos::body(0, 14), &|c| c.lang = Some("en-US".into())).unwrap();
+        let p = doc.para_at(&wordcraft_doc::Pos::body(0, 0)).unwrap();
+        let runs = crate::para::proof_runs(&doc, p, None);
+        for list_item in [false, true] {
+            let issues = crate::para::paragraph_issues(p, &runs, &Default::default(), true, list_item);
+            assert_eq!(issues.iter().any(|i| i.start == 0 && i.end == 9 && i.kind == wordcraft_proof::IssueKind::Grammar), !list_item, "{issues:?}");
         }
     }
 
@@ -160,7 +231,7 @@ mod tests {
             doc.format_range(&wordcraft_doc::Pos::body(0, 7), &wordcraft_doc::Pos::body(0, text.len()), &|c| c.lang = Some(tag.into())).unwrap();
             let p = doc.para_at(&wordcraft_doc::Pos::body(0, 0)).unwrap();
             let runs = crate::para::proof_runs(&doc, p, None);
-            let issues = crate::para::paragraph_issues(p, &runs, &Default::default(), true);
+            let issues = crate::para::paragraph_issues(p, &runs, &Default::default(), true, false);
             let grammar: Vec<_> = issues.iter().filter(|i| i.kind == wordcraft_proof::IssueKind::Grammar && i.lang.code() != "fi").collect();
             assert_eq!(grammar.len(), 1, "{tag}: {issues:?}");
             assert_eq!((grammar[0].start, grammar[0].end), (start, end), "{tag}");
@@ -174,15 +245,15 @@ mod tests {
         let p = doc.para_at(&wordcraft_doc::Pos::body(0, 0)).unwrap();
         let runs = crate::para::proof_runs(&doc, p, None);
         let options = wordcraft_proof::Options::default();
-        let issues = crate::para::paragraph_issues(p, &runs, &options, false);
+        let issues = crate::para::paragraph_issues(p, &runs, &options, false, false);
         assert_eq!(issues.len(), 1);
         assert_eq!(&p.text[issues[0].start..issues[0].end], "koirra");
         assert_eq!(issues[0].lang, wordcraft_proof::ProofLang::Fi);
         let options = wordcraft_proof::Options { ignore_uppercase: false, ..options };
-        assert_eq!(crate::para::paragraph_issues(p, &runs, &options, false).len(), 2);
+        assert_eq!(crate::para::paragraph_issues(p, &runs, &options, false, false).len(), 2);
         let mut runs = runs;
         runs[0].skip = true;
-        assert!(crate::para::paragraph_issues(p, &runs, &options, true).is_empty());
+        assert!(crate::para::paragraph_issues(p, &runs, &options, true, false).is_empty());
     }
 
     #[test]
