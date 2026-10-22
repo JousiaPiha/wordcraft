@@ -1,6 +1,6 @@
 # Finnish proofing with Voikko
 
-> **Last reviewed:** 2026-10-22 · **Last updated:** 2026-10-22 · **Change:** minor (upstream 0.10.0 sync)
+> **Last reviewed:** 2026-10-22 · **Last updated:** 2026-10-22 · **Change:** minor (upstream 0.10.0 and Finnish interface integration)
 
 WordCraft includes Finnish spelling, correction suggestions, grammar checking and
 hyphenation through the Rust implementation of Voikko. The engine and Finnish
@@ -9,6 +9,12 @@ is no Voikko package, DLL, Homebrew installation or dictionary download to manag
 No document text leaves the machine.
 
 ## Using Finnish
+
+Choose **File › Options › Language › Suomi** for the Finnish interface. An untouched
+blank document and new documents then use Finnish proofing automatically. Existing
+documents keep their languages; an explicitly saved default proofing language takes
+precedence. The catalog from [PR #2807](https://github.com/storytold/wordcraft/pull/2807)
+includes 72 translations added for 0.10.0; see [localization-fi.md](localization-fi.md).
 
 Select text and choose **Review → Language → Finnish**, or choose Finnish as the
 document's default language in that dialog. The status-bar language menu also
@@ -168,6 +174,7 @@ opened for visual inspection.
 
 | Checklist item | Automated packaged-app result | Visual result |
 | --- | --- | --- |
+| 2026-10-22 | minor | Merged Finnish UI PR #2807 at `f0368c41`, filled 72 new catalog keys, and connected Suomi to embedded Finnish proofing |
 | 2026-10-22 | minor | Synced upstream 0.10.0 at `9130181a`; retained embedded Finnish proofing, English regional spelling, Indonesian availability and list-item grammar context |
 | 2026-10-18 | minor | Synced upstream 0.8.0; preserved Finnish alongside new Czech, Russian and Turkish proofing and inherited Language dialog choices |
 | 2026-10-14 | minor | Synced upstream 0.7.0; retained Finnish and integrated Italian/Croatian routing and upstream spelling optimization |
@@ -254,7 +261,11 @@ Regression tests cover regional spelling, availability, list context and table
 proofing. The new text-box pagination fixture uses explicit filler spacing so its
 page counts do not depend on host font metrics; its original assertions remain.
 The native workspace suite passed 3,926 tests (four upstream tests ignored).
-The corrected fixture also passed independently after review.
+The corrected fixture also passed independently after review. After adding the
+Finnish interface, all six CI gates passed again: 3,932 native tests passed, none
+failed, and four upstream tests remained ignored. The interface tests verify
+actual Voikko status and suggestions, existing-document preservation, and the
+precedence of an explicitly saved proofing default.
 
 ## Revision history
 

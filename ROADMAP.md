@@ -2,7 +2,7 @@
 
 **Stage: alpha** · next: beta, ~15 points (60% → 75% ready for real work) and ~150–230 h away
 
-> **Last reviewed:** 2026-10-22 · **Last updated:** 2026-10-22 · **Change:** minor (upstream 0.10.0 sync with embedded Finnish proofing) · **Target:** Microsoft Word (Microsoft 365) for Mac 16.113.4
+> **Last reviewed:** 2026-10-22 · **Last updated:** 2026-10-22 · **Change:** minor (upstream 0.10.0 with Finnish interface and embedded Voikko) · **Target:** Microsoft Word (Microsoft 365) for Mac 16.113.4
 > **Printing update:** 2026-10-12 · direct desktop printing through craft-print; details below.
 
 WordCraft aims for complete parity with Microsoft Word, then goes further on speed, openness and
@@ -116,8 +116,8 @@ Weights and evidence per area: [docs/target-app-parity.md](docs/target-app-parit
 Also shipped: Traditional Chinese (`zh-hant`), Ukrainian (`uk`), Serbian (`sr`, `sr-latn`, #250), Russian (`ru`) and Polish (`pl`), all partial (~95%). Bulgarian (`bg`) covers everything the interface audit finds (2,419 entries); Swedish (`sv`) covers that too, plus 44 newer strings no other catalog has yet (2,504 entries). Slovenian (`sl`) covers every key of every catalog. Estonian (`et`), Italian (`it`, #594) and Czech (`cs`) now have complete interface catalogs, and Turkish (`tr`) a complete 2,325-entry one (every key of the Russian catalog), all with
 system-locale selection and a saved language choice (Italian also has 51 strings none of the others had yet); Estonian proofing is not included. Hungarian (`hu`) has a
 complete 2,419-entry catalog, also without proofing. Vietnamese (`vi`, #1434) has a complete
-2,448-entry catalog, also without proofing. Croatian (`hr`, #1271) has a complete catalog.
-Proofing: English, Polish, Portuguese, Italian, Croatian, Turkish and Russian (spelling, grammar; hyphenation except Croatian), plus Czech and Indonesian (system Hunspell spelling, generic checks), chosen per run from its language; Bulgarian and German hyphenation only. Word ships
+2,448-entry catalog, also without proofing. Croatian (`hr`, #1271) has a complete catalog. Finnish (`fi`, #2740/#2807) now has 2,750 entries and selects embedded Voikko for new blank documents.
+Proofing: English, Polish, Portuguese, Italian, Croatian, Turkish and Russian (spelling, grammar; hyphenation except Croatian), plus Czech and Indonesian (system Hunspell spelling, generic checks) and Finnish (embedded Voikko spelling, grammar and hyphenation), chosen per run from its language; Bulgarian and German hyphenation only. Word ships
 30 interface languages and proofing for ~50. Detail: [docs/localization-parity.md](docs/localization-parity.md).
 
 ## Upcoming
@@ -248,6 +248,7 @@ Imported Word 97–2003 `.doc`/`.dot` files now ask for a supported DOCX target 
 | 2026-10-17 | Non-overlapping body floating tables clear header tables. Original native controls distinguish never-overlap from allowed overlap. |
 | 2026-10-14 | Comment text being typed is no longer lost or misplaced (#1348): an edit or reply the document refuses (for example read-only protection) keeps the typed text in its field and says why on the status line; drafts belong to their document, so after New or Open a comment with the same number shows its own text; Save, Export, Print, Close, New and Open write pending comment text first; if the document refuses it, Save, Export and Print carry on with the stored comments and show why on the status line (a refused draft is dropped when Save is the only change), while Close, New and Open show the Save Changes prompt (Don't Save drops text the document refuses); Escape discards what was typed; in a document protected as read only or for forms the comment fields can't be typed in |
 |---|---|
+| 2026-10-22 | Merged Finnish UI from PR #2807 (`f0368c41`), updated to 2,750 catalog entries, and enabled embedded Voikko for new blank documents; existing documents and explicit proofing defaults keep their language |
 | 2026-10-22 | Synced upstream 0.10.0 at `9130181a`; retained embedded Finnish proofing, English regional spelling, Indonesian availability and list-item grammar context |
 | 2026-10-18 | Synced upstream 0.8.0 at `f2e15cf`; retained embedded Finnish proofing alongside Czech, Russian and Turkish, including mixed-language grammar boundaries and inherited Language dialog settings |
 | 2026-10-14 | Synced upstream 0.7.0 at `a124d58`; retained embedded Finnish proofing and integrated the Italian/Croatian backends, language menu and spelling-token optimization; regression coverage for backend availability and mixed-language grammar boundaries |
@@ -578,6 +579,7 @@ Footer page-table height and body wrapping are corrected. Other pagination gaps 
 
 | Date | Change | Summary |
 |---|---|---|
+| 2026-10-22 | minor | Merged Finnish UI from PR #2807 (`f0368c41`), updated to 2,750 catalog entries, and enabled embedded Voikko for new blank documents; existing documents and explicit proofing defaults keep their language |
 | 2026-10-22 | minor | Synced upstream 0.10.0 at `9130181a`; retained embedded Finnish proofing, English regional spelling, Indonesian availability and list-item grammar context |
 | 2026-10-18 | minor | Synced upstream 0.8.0 at `f2e15cf`; retained embedded Finnish proofing alongside Czech, Russian and Turkish, including mixed-language grammar boundaries and inherited Language dialog settings |
 | 2026-10-14 | minor | Synced upstream 0.7.0 at `a124d58`; retained embedded Finnish proofing and integrated the Italian/Croatian backends, language menu and spelling-token optimization |
