@@ -1,6 +1,25 @@
 # Finnish proofing with Voikko
 
-> **Last reviewed:** 2026-10-22 · **Last updated:** 2026-10-22 · **Change:** minor (upstream 0.10.0 and Finnish interface integration)
+> **Last reviewed:** 2026-11-02 · **Last updated:** 2026-11-02 · **Change:** minor (upstream 0.10.0 and Finnish interface integration)
+
+## Upstream 0.14.0 sync (2026-11-02)
+
+Synced upstream `fd7f6621` while preserving embedded Rust Voikko and the Finnish
+interface. Upstream now loads translations from the pinned `craft-i18n` checkout;
+this fork also embeds its Finnish catalog as a fallback. Release builds use
+`CRAFT_I18N_DIR` at the revision in `craft-i18n.rev` for the other interface languages.
+Finnish remains available without that optional checkout. Mixed Finnish text keeps
+the upstream English and Spanish regional proofing variants.
+
+Validation: all eight `cargo +1.95.0 xtask ci` gates passed, 4,818 tests passed,
+none failed and four upstream tests were ignored; all 17 WebAssembly crates checked.
+The graphical tests used Mesa software drivers (`VK_DRIVER_FILES` selecting
+`lvp_icd.json`, Mesa EGL vendor selection, `LIBGL_ALWAYS_SOFTWARE=1`) after the
+sandbox's concurrent NVIDIA/Vulkan driver enumeration crashed the test harness.
+The pagination fixture now uses the existing bundled-font helper and enough text
+to cross a page; its original boundary assertions remain intact.
+
+
 
 WordCraft includes Finnish spelling, correction suggestions, grammar checking and
 hyphenation through the Rust implementation of Voikko. The engine and Finnish
@@ -271,6 +290,7 @@ precedence of an explicitly saved proofing default.
 
 | Date | Change | Summary |
 | --- | --- | --- |
+| 2026-11-02 | minor | Synced upstream 0.14.0 (`fd7f6621`); retained embedded Voikko, regional proofing and Finnish UI through shared catalog migration |
 | 2026-10-14 | minor | Synced upstream 0.7.0; retained Finnish and integrated Italian/Croatian routing and upstream spelling optimization |
 | 2026-10-13 | minor | Owner confirmed the Mac version works; recorded overall Mac acceptance separately from automated checks and unreported manual details; Windows testing remains pending |
 | 2026-10-13 | minor | Recorded native Apple Silicon build, ad-hoc package, offline app automation and visual results; personal acceptance and Windows testing pending |

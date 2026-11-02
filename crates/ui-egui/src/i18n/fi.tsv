@@ -2768,3 +2768,117 @@ preview	Title	Otsikko
 	cm	cm
 	mm	mm
 	pi	pi
+
+# Language name for the shared craft-i18n lookup engine.
+@id	language.name	Suomi
+
+# Additional WordCraft 0.14 interface strings.
+	Current record	Nykyinen tietue
+	Delete Around Caret in Equation	Poista kohdistimen ympäriltä yhtälöstä
+	Edit Individual Documents…	Muokkaa yksittäisiä asiakirjoja…
+	Enter a number.	Anna luku.
+	First Record	Ensimmäinen tietue
+	From:	Alkaen:
+	Go to Record	Siirry tietueeseen
+	Journal article	Tieteellinen artikkeli
+	Last Record	Viimeinen tietue
+	Open a document first	Avaa ensin asiakirja
+	Print Documents	Tulosta asiakirjat
+	Print Documents…	Tulosta asiakirjat…
+	Select a place in this document:	Valitse kohta tästä asiakirjasta:
+	Spelling and grammar are checked in {language}.	Oikeinkirjoitus ja kielioppi tarkistetaan kielellä {language}.
+	The text at the insertion point is marked Do not check spelling or grammar.	Lisäyskohdan tekstin oikeinkirjoituksen ja kieliopin tarkistus on poistettu käytöstä.
+	To:	Päättyen:
+	Top of the Document	Asiakirjan alku
+	a drawing canvas can't be ungrouped	piirtoalustan ryhmitystä ei voi purkaa
+	a drawing canvas can't go inside a text box	piirtoalustaa ei voi sijoittaa tekstiruutuun
+	a group holding Word ink can't be ungrouped yet	Word-käsinkirjoitusta sisältävää ryhmää ei voi vielä purkaa
+	charts and diagrams can't be moved or resized yet	kaavioita ja kaavakuvia ei voi vielä siirtää eikä niiden kokoa muuttaa
+	drop caps can't go in a table	anfangia ei voi lisätä taulukkoon
+	leave the equation first	poistu ensin yhtälöstä
+	no equation at the caret	kohdistimen kohdalla ei ole yhtälöä
+	not editing an equation	yhtälöä ei muokata
+	only in Outline view	vain jäsennysnäkymässä
+	select a SmartArt graphic first	valitse ensin SmartArt-kuva
+	select a chart first	valitse ensin kaavio
+	select a connector first	valitse ensin yhdysviiva
+	select a drawing canvas first	valitse ensin piirtoalusta
+	select a floating picture or shape first	valitse ensin kelluva kuva tai muoto
+	select a group first	valitse ensin ryhmä
+	select a picture first	valitse ensin kuva
+	select a shape first	valitse ensin muoto
+	select a text box first	valitse ensin tekstiruutu
+	select a text box linked to another first	valitse ensin toiseen linkitetty tekstiruutu
+	the Clipboard pane is empty	leikepöytäruutu on tyhjä
+	the Spike is empty	keräilyleikepöytä on tyhjä
+	the document is protected	asiakirja on suojattu
+	there is nothing to undo	kumottavaa ei ole
+	this SmartArt was made in another program: WordCraft shows it but can't edit it	tämä SmartArt-kuva on tehty toisessa ohjelmassa: WordCraft näyttää sen, mutta ei voi muokata sitä
+	this chart was made in another program: WordCraft shows it but can't edit it	tämä kaavio on tehty toisessa ohjelmassa: WordCraft näyttää sen, mutta ei voi muokata sitä
+	this text box is already linked: break the link first	tämä tekstiruutu on jo linkitetty: katkaise ensin linkki
+	{language}: WordCraft doesn't check spelling or grammar in this language yet.	{language}: WordCraft ei vielä tarkista tämän kielen oikeinkirjoitusta eikä kielioppia.
+
+# Current UI labels introduced since the original Finnish catalog.
+	*Bold* and _italic_ as real formatting	*Lihavointi* ja _kursivointi_ oikeana muotoiluna
+	Add a period with double-space	Lisää piste kahdella välilyönnillä
+	Advanced Properties…	Lisäominaisuudet…
+	Automatically add words to list (First Letter)	Lisää sanat luetteloon automaattisesti (ensimmäinen kirjain)
+	Automatically add words to list (INitial CAps)	Lisää sanat luetteloon automaattisesti (KAkSI isoa alkukirjainta)
+	Bookmarks	Kirjanmerkit
+	Built-in Heading styles	Sisäiset otsikkotyylit
+	Check for Updates	Tarkista päivitykset
+	Continue without restoring	Jatka palauttamatta
+	Corporate Author	Yhteisötekijä
+	Couldn't save {name}, so it is still open and nothing was lost: {error}	Asiakirjaa {name} ei voitu tallentaa. Se on edelleen auki eikä mitään menetetty: {error}
+	Crop on the page works on unturned pictures: set Rotation to 0° first, or use the crop boxes	Sivulla voi rajata vain kiertämättömiä kuvia: aseta kiertokulmaksi ensin 0° tai käytä rajauskenttiä
+	Current Document	Nykyinen asiakirja
+	Discard	Hylkää
+	Discard the recovery copy of {name}?	Hylätäänkö asiakirjan {name} palautuskopio?
+	Discard…	Hylkää…
+	Dock Left	Kiinnitä vasemmalle
+	Dock Right	Kiinnitä oikealle
+	File type	Tiedostotyyppi
+	Float	Kelluva
+	Folder path	Kansion polku
+	Imported 1 source	Tuotu 1 lähde
+	Imported {n} sources	Tuotuja lähteitä: {n}
+	Local recovery is unavailable or still loading.	Paikallinen palautus ei ole käytettävissä tai latautuu vielä.
+	Macro name:	Makron nimi:
+	Modify	Muokkaa
+	Move Pane: {title}	Siirrä ruutua: {title}
+	No matching commands	Vastaavia komentoja ei ole
+	No new sources in that file	Tiedostossa ei ole uusia lähteitä
+	No recovery copies.	Palautuskopioita ei ole.
+	Nothing of this type in the document.	Asiakirjassa ei ole tämän tyypin kohteita.
+	Only text properties can be changed.	Vain tekstiominaisuuksia voi muuttaa.
+	Page color	Sivun väri
+	Pages in the range	Alueen sivut
+	Pane Options	Ruudun asetukset
+	Property names are 1–{max} characters.	Ominaisuuksien nimien pituus on 1–{max} merkkiä.
+	Property values are at most {max} bytes.	Ominaisuuksien arvojen enimmäispituus on {max} tavua.
+	Record…	Tallenna makro…
+	Recovery copy	Palautuskopio
+	Recovery is disabled while this document has a password.	Palautus ei ole käytössä, kun asiakirjalla on salasana.
+	Resize Pane	Muuta ruudun kokoa
+	Restore	Palauta
+	Restore opens an unsaved copy. Your original file stays unchanged.	Palautus avaa tallentamattoman kopion. Alkuperäinen tiedosto säilyy ennallaan.
+	Run	Suorita
+	Scale to paper size	Sovita paperikokoon
+	Select a property to change.	Valitse muutettava ominaisuus.
+	Set left- and first-indent with tabs and backspaces	Aseta vasen sisennys ja ensirivin sisennys sarkaimella ja askelpalauttimella
+	Spanish (Latin America)	Espanja (Latinalainen Amerikka)
+	Spanish (Uruguay)	Espanja (Uruguay)
+	Stop Recording	Lopeta tallennus
+	Text Size	Tekstin koko
+	Text properties only: Word's number, date and yes-no types aren't offered.	Vain tekstiominaisuudet: Wordin luku-, päivämäärä- ja kyllä–ei-tyypit eivät ole käytettävissä.
+	The number must be a divisor of {max}.	Luvun on oltava luvun {max} jakaja.
+	The spelling dictionary for {language} couldn't be read, so it isn't checked. File: {file}. Reason: {reason}	Kielen {language} oikeinkirjoitussanastoa ei voitu lukea, joten sitä ei tarkisteta. Tiedosto: {file}. Syy: {reason}
+	There are no macros yet. Record one to add it here.	Makroja ei vielä ole. Lisää makro tähän tallentamalla se.
+	This cannot be undone. Your original file stays unchanged.	Tätä ei voi kumota. Alkuperäinen tiedosto säilyy ennallaan.
+	This document has no custom properties.	Asiakirjassa ei ole mukautettuja ominaisuuksia.
+	Update check is not supported in the web browser.	Päivitysten tarkistusta ei tueta selaimessa.
+	Value:	Arvo:
+	View and edit the document's custom properties.	Tarkastele ja muokkaa asiakirjan mukautettuja ominaisuuksia.
+	{field}, record {n}	{field}, tietue {n}
+	{language} (dictionary unreadable)	{language} (sanastoa ei voi lukea)
+	{language}: {file} (unreadable: {reason})	{language}: {file} (ei voi lukea: {reason})

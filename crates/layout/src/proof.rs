@@ -88,6 +88,9 @@ pub(crate) fn issues_for_runs(
             match r.lang {
                 wordcraft_proof::ProofLang::EnGb => "en-GB",
                 wordcraft_proof::ProofLang::EnCa => "en-CA",
+                wordcraft_proof::ProofLang::EsMx => "es-MX",
+                wordcraft_proof::ProofLang::Es419 => "es-419",
+                wordcraft_proof::ProofLang::EsUy => "es-UY",
                 wordcraft_proof::ProofLang::Other => "x-none",
                 lang => lang.code(),
             }
@@ -134,6 +137,23 @@ pub fn table_props(doc: &wordcraft_doc::Document, story: wordcraft_doc::StoryRef
 mod tests {
     use super::*;
     use wordcraft_doc::{CharProps, Paragraph, styles::StyleSheet};
+
+    #[test]
+    fn finnish_boundaries_preserve_spanish_regions() {
+        for tag in ["es-ES", "es-MX", "es-419", "es-UY"] {
+            let mut doc = wordcraft_doc::Document::from_text("Kissa esto esto.");
+            doc.styles.default_chr.lang = Some(tag.into());
+            doc.format_range(&wordcraft_doc::Pos::body(0, 0), &wordcraft_doc::Pos::body(0, 5), &|c| c.lang = Some("fi-FI".into())).unwrap();
+            let p = doc.para_at(&wordcraft_doc::Pos::body(0, 0)).unwrap();
+            let runs = crate::para::proof_runs(&doc, p, None);
+            let issues = crate::para::paragraph_issues(p, &runs, &wordcraft_proof::Options::default(), true, false);
+            let expected = wordcraft_proof::ProofLang::from_tag(Some(tag));
+            assert!(
+                issues.iter().any(|i| i.start == 6 && i.end == 15 && i.kind == wordcraft_proof::IssueKind::Grammar && i.lang == expected),
+                "{tag}: {issues:?}"
+            );
+        }
+    }
 
     #[test]
     fn voikko_boundaries_preserve_polish_and_portuguese_sentence_context() {

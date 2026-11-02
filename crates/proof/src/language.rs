@@ -37,17 +37,10 @@ pub fn status(language: &str) -> Status {
         let reason = backend::status().err();
         Status { available: reason.is_none(), backend: "voikko-rust", reason }
     } else {
-        let available = match crate::ProofLang::from_tag(Some(language)) {
-            crate::ProofLang::Pl => crate::pl::has_dictionary(),
-            crate::ProofLang::Pt => crate::pt::has_dictionary(),
-            crate::ProofLang::It => crate::it::has_dictionary(),
-            crate::ProofLang::Hr => crate::hr::has_dictionary(),
-            crate::ProofLang::Tr => crate::tr::has_dictionary(),
-            crate::ProofLang::Ru => crate::ru::has_dictionary(),
-            crate::ProofLang::Cs => crate::cs::has_dictionary(),
-            crate::ProofLang::Id => crate::id::has_dictionary(),
-            _ => return Status { available: false, backend: "none", reason: Some("No proofing dictionary for this language".into()) },
+        let Some(proof) = crate::language(crate::ProofLang::from_tag(Some(language))) else {
+            return Status { available: false, backend: "none", reason: Some("No proofing dictionary for this language".into()) };
         };
+        let available = proof.slot.has_dictionary();
         Status { available, backend: "hunspell", reason: (!available).then(|| "No installed Hunspell dictionary for this language".into()) }
     }
 }
@@ -95,7 +88,7 @@ pub fn hyphenate(word: &str, language: &str, limits: &crate::hyphen::Limits) -> 
 }
 
 mod backend {
-    use super::*;
+    use super::{Issue, IssueKind};
     use std::cell::RefCell;
     use wordcraft_voikko::{Error, Voikko};
 
