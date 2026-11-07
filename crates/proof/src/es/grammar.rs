@@ -75,11 +75,8 @@ fn spaces(text: &str, lang: ProofLang, v: &mut Vec<Issue>) {
             v.push(issue(i, i + 1 + p.len_utf8(), "Espacio antes de un signo de puntuación".into(), vec![p.to_string()], lang));
         }
     }
-    for (i, _) in text.match_indices("  ") {
-        if i > 0 && text.get(..i).is_some_and(|t| t.ends_with(' ')) {
-            continue;
-        }
-        v.push(issue(i, i + 2, "Espacio doble".into(), vec![" ".into()], lang));
+    for run in crate::space_runs(text) {
+        v.push(issue(run.start, run.end, "Espacio doble".into(), vec![" ".into()], lang));
     }
 }
 
@@ -192,6 +189,16 @@ mod tests {
             .filter(|i| i.message.starts_with("Falta"))
             .map(|i| (text[i.start..i.end].to_string(), i.suggestions))
             .collect()
+    }
+
+    /// craft-libs#496 review: a run of spaces is one issue over the whole run.
+    #[test]
+    fn a_run_of_spaces_is_reported_whole() {
+        for (text, run) in [("casa  roja", "  "), ("casa   roja", "   "), ("casa    roja", "    "), ("casa     roja", "     ")] {
+            let m: Vec<_> = messages(text).into_iter().filter(|(_, msg)| msg == "Espacio doble").collect();
+            assert_eq!(m, [(run.to_string(), "Espacio doble".to_string())], "{text}");
+        }
+        assert!(messages("casa roja").is_empty());
     }
 
     #[test]
@@ -334,9 +341,11 @@ mod tests {
     /// Maintainer review on #3562: a paragraph of thousands of addresses followed by a question was
     /// checked in quadratic time (every character before the question scanned every address).
     /// About 99 KB (under the 100,000-byte paragraph cap) took hundreds of milliseconds; it is now
-    /// O(n log m): about 1 to 5 ms in a debug build, against about 300 ms for the scan, so the
-    /// bound below leaves room on a loaded machine and still catches a return to the quadratic
-    /// lookup.
+    /// O(n log m): about 1 to 5 ms in a debug build, against about 300 ms for the scan at
+    /// `opt-level = 1`. craft-libs builds tests at `opt-level = 0`, where the fixed lookup took up
+    /// to ~80 ms under a parallel test run and more on a busy machine. The test guards against a
+    /// return to the quadratic blowup, not machine load, so the bound is 1 s.
+    #[cfg_attr(not(craft_proof_data), ignore = "needs the Language data (CRAFT_I18N_DIR)")]
     #[test]
     fn many_addresses_before_a_question_are_checked_quickly() {
         for (unit, ending, whole_paragraph) in
@@ -348,7 +357,7 @@ mod tests {
             let started = std::time::Instant::now();
             let issues = check(&text, ProofLang::Es);
             let took = started.elapsed();
-            assert!(took < std::time::Duration::from_millis(75), "{unit:?} took {took:?}");
+            assert!(took < std::time::Duration::from_secs(1), "{unit:?} took {took:?}");
             let missing: Vec<&Issue> = issues.iter().filter(|i| i.message.starts_with("Falta")).collect();
             assert_eq!(missing.len(), 1, "{unit:?}: {missing:?}");
             // The mark's sentence is the whole paragraph when the addresses don't end with a mark

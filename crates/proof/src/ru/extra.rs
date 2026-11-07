@@ -1,11 +1,11 @@
 //! Our supplement of Russian words older Hunspell dictionaries lack (`маркетплейс`, `промокод`,
-//! `интеграция`, `бонусный`…), from `assets/spelling/ru-extra.txt`: each base form with its
+//! `интеграция`, `бонусный`…), from craft-i18n's `language-data/ru/ru-extra.txt`: each base form with its
 //! declension, expanded here into every form.
 
 use std::collections::HashSet;
 use std::sync::OnceLock;
 
-const EXTRA_RU: &str = include_str!("../../../../assets/spelling/ru-extra.txt");
+use crate::data::EXTRA_RU;
 
 /// Every form of the supplement: common words (lower case) and names (lower case too, but they
 /// only match a word written with a capital).
@@ -133,7 +133,14 @@ fn forms(base: &str, class: &str) -> Vec<String> {
         }
         "adj" => {
             if let Some(stem) = base.strip_suffix("ый").or_else(|| base.strip_suffix("ой")) {
-                let mut v = with(stem, &["ого", "ому", "ым", "ом", "ая", "ой", "ую", "ое", "ые", "ых", "ыми"]);
+                // `ы` is written `и` after г, к, х and ж, ш, ч, щ (`дорогие`, `большими`).
+                let i = is_velar(last(stem)) || is_hushing(last(stem));
+                let ends: &[&str] = if i {
+                    &["ого", "ому", "им", "ом", "ая", "ой", "ую", "ое", "ие", "их", "ими"]
+                } else {
+                    &["ого", "ому", "ым", "ом", "ая", "ой", "ую", "ое", "ые", "ых", "ыми"]
+                };
+                let mut v = with(stem, ends);
                 v.push(base.to_string());
                 return v;
             }
@@ -156,6 +163,20 @@ fn forms(base: &str, class: &str) -> Vec<String> {
 mod tests {
     use super::*;
 
+    /// craft-libs#495 review: `-ой` adjectives after a velar or hushing letter take `и`.
+    #[test]
+    fn oi_adjectives_spell_i_after_velars_and_hushers() {
+        let f = forms("дорогой", "adj");
+        assert!(f.contains(&"дорогие".to_string()) && f.contains(&"дорогими".to_string()) && !f.iter().any(|w| w.contains('ы')), "{f:?}");
+        let f = forms("большой", "adj");
+        assert!(f.contains(&"больших".to_string()) && !f.iter().any(|w| w.contains('ы')), "{f:?}");
+        assert!(forms("молодой", "adj").contains(&"молодые".to_string()));
+    }
+
+    #[cfg_attr(
+        not(craft_proof_embed = "ru"),
+        ignore = "needs the ru Language data (CRAFT_I18N_DIR; ru-extra.txt is embedded in every build that has it)"
+    )]
     #[test]
     fn supplement_words_decline() {
         for w in [

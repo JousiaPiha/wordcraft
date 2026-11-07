@@ -76,7 +76,7 @@ fn check(d: &AffixDict, word: &str, opts: &crate::Options) -> bool {
             || w.split('-').all(|p| {
                 p.chars().count() <= 1
                     || CLITICS.iter().any(|c| p.eq_ignore_ascii_case(c))
-                    || (opts.ignore_uppercase && p.chars().all(|c| !c.is_lowercase()) && p.chars().count() <= 6)
+                    || (opts.ignore_uppercase && crate::spelling::capitals_part(p, 6))
                     || known(d, p)
             });
     }
@@ -141,6 +141,19 @@ mod tests {
         }
     }
 
+    /// Review follow-up (craft-libs#485's cased-letter rule): a part in a caseless script is no
+    /// abbreviation, so `buku-日本` is checked part by part; a part in capitals or without letters
+    /// still is one (`KTP-nya`, `COVID-19` with numbers checked).
+    #[test]
+    fn caseless_parts_are_not_abbreviations() {
+        test_dict::install();
+        let d = dictionary();
+        let defaults = crate::Options::default();
+        assert!(!check(&d, "buku-日本", &defaults) && !check(&d, "buku-ไทย", &defaults));
+        let numbers = crate::Options { ignore_numbers: false, ..defaults };
+        assert!(check(&d, "KTP-nya", &defaults) && check(&d, "buku-19", &numbers));
+    }
+
     #[test]
     fn forbidden_words_are_rejected_in_every_case() {
         test_dict::install();
@@ -153,7 +166,7 @@ mod tests {
     fn missing_dictionary_and_ignored_inputs_are_quiet() {
         let empty = AffixDict::default();
         assert!(is_correct_with(&empty, "rumha"));
-        assert!(install_dictionary("FLAG long\n", "1\nrumah\n").is_err());
+        assert!(install_dictionary("FLAG bogus\n", "1\nrumah\n").is_err());
         let d = AffixDict::from_hunspell(test_dict::AFF, test_dict::DIC, &[]).unwrap();
         for w in ["", "a", "2026", "RI", "ke-2", "日本語", "-", "--"] {
             assert!(is_correct_with(&d, w), "{w}");
@@ -170,6 +183,8 @@ mod tests {
 
     #[test]
     fn indonesian_dispatch_messages_options_and_mixed_spans() {
+        // English results depend on the dictionaries other tests install.
+        crate::hold_dictionary_tests();
         test_dict::install();
         assert!(crate::has_dictionary(Some("id-ID")));
         assert!(crate::is_correct_for("rumah", Some("ind")));

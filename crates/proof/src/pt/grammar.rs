@@ -62,8 +62,15 @@ fn ends_sentence(gap: &str, prev: &str) -> bool {
     if end == '.' && abbreviation_or_number(prev) {
         return false;
     }
-    let rest = t.trim_start_matches(['.', '!', '?']).trim_start_matches(CLOSING);
-    rest.starts_with(char::is_whitespace) && rest.trim_start().chars().all(|c| OPENING.contains(&c))
+    let after_marks = t.trim_start_matches(['.', '!', '?']);
+    let rest = after_marks.trim_start_matches(CLOSING);
+    // `"Vai?" disse ele.` (not the object placeholder `\u{1}`): narration after a quoted question or exclamation goes on in lower case.
+    if end != '.' && after_marks.trim_start_matches('\u{1}').starts_with(CLOSING) {
+        return false;
+    }
+    // A dialogue dash after the mark brings back the narration (`—Vai? —disse ele.`), which goes
+    // on in lower case.
+    rest.starts_with(char::is_whitespace) && !rest.contains('—') && rest.trim_start().chars().all(|c| OPENING.contains(&c))
 }
 
 /// Grammar issues in a paragraph of Portuguese text, in order.
@@ -115,18 +122,15 @@ fn spaces(text: &str, v: &mut Vec<Issue>) {
             // ` ...` is an ellipsis, ` .5` a number.
             '.' => !matches!(after, Some('.')) && !after.is_some_and(|a| a.is_ascii_digit()),
             // ` :)`, ` :-)`, ` :D` and similar are emoticons; ` ?!` is still a stray space.
-            ':' | '!' | '?' => after.is_none_or(|a| a.is_whitespace() || matches!(a, '"' | '”' | '’' | '!' | '?')),
+            ':' | '!' | '?' => !crate::score_colon(text, i) && after.is_none_or(|a| a.is_whitespace() || matches!(a, '"' | '”' | '’' | '!' | '?')),
             _ => false,
         };
         if flag {
             v.push(issue(i, i + 1 + p.len_utf8(), "Espaço antes da pontuação".into(), vec![p.to_string()]));
         }
     }
-    for (i, _) in text.match_indices("  ") {
-        if i > 0 && text.get(..i).is_some_and(|t| t.ends_with(' ')) {
-            continue;
-        }
-        v.push(issue(i, i + 2, "Espaço duplo".into(), vec![" ".into()]));
+    for run in crate::space_runs(text) {
+        v.push(issue(run.start, run.end, "Espaço duplo".into(), vec![" ".into()]));
     }
 }
 
@@ -220,6 +224,17 @@ mod tests {
         clean("Zhou ficou em 5. lugar no séc. XX.");
         clean("Esperei... e ele apareceu.");
         clean("— Vai — disse ele. — Amanhã eu volto.");
+        // craft-libs#488 review: no space after the dash.
+        clean("—Vai? —disse ele.");
+        clean("— Vai? — disse ele.");
+        // craft-libs#496 review: a closing quote after the mark.
+        clean("\"Vai?\" disse ele.");
+        clean("«Vai!» gritou ela.");
+        assert!(!messages("Vai? \"sim\".").is_empty(), "a bare question still ends the sentence");
+        // An inline object (`\u{1}`) before a real closing quote is skipped.
+        clean("\"Vai?\u{1}\" disse ele.");
+        // An inline object (`\u{1}`) is not a closing quote.
+        assert!(!messages("Quem era?\u{1} era Marco.").is_empty());
         clean("Ele disse: \"Volto amanhã\". E saiu.");
         // A list item may start in lower case.
         clean("maçãs,");

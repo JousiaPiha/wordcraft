@@ -88,11 +88,12 @@ pub(crate) fn issues_for_runs(
             match r.lang {
                 wordcraft_proof::ProofLang::EnGb => "en-GB",
                 wordcraft_proof::ProofLang::EnCa => "en-CA",
+                wordcraft_proof::ProofLang::EnAu => "en-AU",
                 wordcraft_proof::ProofLang::EsMx => "es-MX",
                 wordcraft_proof::ProofLang::Es419 => "es-419",
                 wordcraft_proof::ProofLang::EsUy => "es-UY",
                 wordcraft_proof::ProofLang::Other => "x-none",
-                lang => lang.code(),
+                lang => return (r.range.clone(), lang.tag().into_owned()),
             }
             .into(),
         )
@@ -102,6 +103,23 @@ pub(crate) fn issues_for_runs(
 
 fn issues_in_spans(p: &Paragraph, spans: Vec<Span>, options: &wordcraft_proof::Options, grammar: bool, list_item: bool) -> Vec<Issue> {
     let mut out = Vec::new();
+    // Classify whole whitespace-delimited tokens once, even when their language changes.
+    let mut addresses = Vec::new();
+    if options.ignore_internet {
+        let mut start = None;
+        for (offset, c) in p.text.char_indices().chain(std::iter::once((p.text.len(), ' '))) {
+            if c.is_whitespace() {
+                if let Some(a) = start.take()
+                    && let Some(token) = p.text.get(a..offset)
+                    && (token.contains("://") || token.contains('@') || token.starts_with("www."))
+                {
+                    addresses.push(a..offset);
+                }
+            } else if start.is_none() {
+                start = Some(offset);
+            }
+        }
+    }
     for span in spans {
         let Some(text) = p.text.get(span.range.clone()) else { continue };
         let mut issues = language::check_spelling_with(text, &span.language, options);
@@ -114,6 +132,12 @@ fn issues_in_spans(p: &Paragraph, spans: Vec<Span>, options: &wordcraft_proof::O
             if issue.start < issue.end && text.get(issue.start..issue.end).is_some() {
                 issue.start += span.range.start;
                 issue.end += span.range.start;
+                let at = addresses.partition_point(|r| r.end <= issue.start);
+                if issue.kind == wordcraft_proof::IssueKind::Spelling
+                    && addresses.get(at).is_some_and(|r| r.start <= issue.start && issue.start < r.end)
+                {
+                    continue;
+                }
                 out.push(issue);
             }
         }
@@ -139,10 +163,25 @@ mod tests {
     use wordcraft_doc::{CharProps, Paragraph, styles::StyleSheet};
 
     #[test]
+    fn address_across_language_boundary_respects_spelling_preference() {
+        let text = "koirra@example.com";
+        let mut doc = wordcraft_doc::Document::from_text(text);
+        doc.format_range(&wordcraft_doc::Pos::body(0, 0), &wordcraft_doc::Pos::body(0, 6), &|c| c.lang = Some("fi-FI".into())).unwrap();
+        let p = doc.para_at(&wordcraft_doc::Pos::body(0, 0)).unwrap();
+        let runs = crate::para::proof_runs(&doc, p, None);
+        let default = wordcraft_proof::Options::default();
+        let checked = crate::para::paragraph_issues(p, &runs, &default, false, false);
+        assert!(checked.iter().all(|i| i.kind != wordcraft_proof::IssueKind::Spelling), "{checked:?}");
+        let include_addresses = wordcraft_proof::Options { ignore_internet: false, ..default };
+        let checked = crate::para::paragraph_issues(p, &runs, &include_addresses, false, false);
+        assert!(checked.iter().any(|i| i.start == 0 && i.kind == wordcraft_proof::IssueKind::Spelling), "{checked:?}");
+    }
+
+    #[test]
     fn finnish_boundaries_preserve_spanish_regions() {
         for tag in ["es-ES", "es-MX", "es-419", "es-UY"] {
             let mut doc = wordcraft_doc::Document::from_text("Kissa esto esto.");
-            doc.styles.default_chr.lang = Some(tag.into());
+            std::sync::Arc::make_mut(&mut doc.styles).default_chr.lang = Some(tag.into());
             doc.format_range(&wordcraft_doc::Pos::body(0, 0), &wordcraft_doc::Pos::body(0, 5), &|c| c.lang = Some("fi-FI".into())).unwrap();
             let p = doc.para_at(&wordcraft_doc::Pos::body(0, 0)).unwrap();
             let runs = crate::para::proof_runs(&doc, p, None);
@@ -161,7 +200,7 @@ mod tests {
             for (suffix, expected) in [(format!("{word}."), false), (format!("{word}. {word}."), true)] {
                 let text = format!("Kissa {suffix}");
                 let mut doc = wordcraft_doc::Document::from_text(&text);
-                doc.styles.default_chr.lang = Some(tag.into());
+                std::sync::Arc::make_mut(&mut doc.styles).default_chr.lang = Some(tag.into());
                 doc.format_range(&wordcraft_doc::Pos::body(0, 0), &wordcraft_doc::Pos::body(0, 5), &|c| c.lang = Some("fi-FI".into())).unwrap();
                 let p = doc.para_at(&wordcraft_doc::Pos::body(0, 0)).unwrap();
                 let runs = crate::para::proof_runs(&doc, p, None);
@@ -189,7 +228,7 @@ mod tests {
     fn skipped_table_grid_columns_keep_the_effective_finnish_language() {
         use wordcraft_doc::styles::{Style, StyleKind, TableStyleParts};
         let mut doc = wordcraft_doc::Document::new();
-        doc.styles.styles.push(Style {
+        std::sync::Arc::make_mut(&mut doc.styles).styles.push(Style {
             id: "GridLanguage".into(),
             name: "Grid language".into(),
             kind: StyleKind::Table,
@@ -219,7 +258,7 @@ mod tests {
         for (tag, words, wrong, right) in [("en-GB", "color colour", "color", "colour"), ("en-CA", "organize organise", "organise", "organize")] {
             let text = format!("Kissa. {words}");
             let mut doc = wordcraft_doc::Document::from_text(&text);
-            doc.styles.default_chr.lang = Some("fi-FI".into());
+            std::sync::Arc::make_mut(&mut doc.styles).default_chr.lang = Some("fi-FI".into());
             doc.format_range(&wordcraft_doc::Pos::body(0, 7), &wordcraft_doc::Pos::body(0, text.len()), &|c| c.lang = Some(tag.into())).unwrap();
             let p = doc.para_at(&wordcraft_doc::Pos::body(0, 0)).unwrap();
             let runs = crate::para::proof_runs(&doc, p, None);
@@ -232,7 +271,7 @@ mod tests {
     #[test]
     fn mixed_finnish_list_item_keeps_upstream_capitalization_rule() {
         let mut doc = wordcraft_doc::Document::from_text("lowercase item Äiti");
-        doc.styles.default_chr.lang = Some("fi-FI".into());
+        std::sync::Arc::make_mut(&mut doc.styles).default_chr.lang = Some("fi-FI".into());
         doc.format_range(&wordcraft_doc::Pos::body(0, 0), &wordcraft_doc::Pos::body(0, 14), &|c| c.lang = Some("en-US".into())).unwrap();
         let p = doc.para_at(&wordcraft_doc::Pos::body(0, 0)).unwrap();
         let runs = crate::para::proof_runs(&doc, p, None);
@@ -247,7 +286,7 @@ mod tests {
         for (tag, tail, start, end) in [("tr-TR", "ev ev.", 10, 12), ("ru-RU", "дом дом.", 7, 20), ("cs-CZ", "město město.", 7, 20)] {
             let text = format!("Äiti, {tail}");
             let mut doc = wordcraft_doc::Document::from_text(&text);
-            doc.styles.default_chr.lang = Some("fi-FI".into());
+            std::sync::Arc::make_mut(&mut doc.styles).default_chr.lang = Some("fi-FI".into());
             doc.format_range(&wordcraft_doc::Pos::body(0, 7), &wordcraft_doc::Pos::body(0, text.len()), &|c| c.lang = Some(tag.into())).unwrap();
             let p = doc.para_at(&wordcraft_doc::Pos::body(0, 0)).unwrap();
             let runs = crate::para::proof_runs(&doc, p, None);
@@ -261,7 +300,7 @@ mod tests {
     #[test]
     fn voikko_uses_upstream_preferences_and_exclusions() {
         let mut doc = wordcraft_doc::Document::from_text("KOIRRA koirra. Äiti on on kotona.");
-        doc.styles.default_chr.lang = Some("fi-FI".into());
+        std::sync::Arc::make_mut(&mut doc.styles).default_chr.lang = Some("fi-FI".into());
         let p = doc.para_at(&wordcraft_doc::Pos::body(0, 0)).unwrap();
         let runs = crate::para::proof_runs(&doc, p, None);
         let options = wordcraft_proof::Options::default();

@@ -1,8 +1,8 @@
 # WordCraft roadmap: milestones and what's next
 
-> **Last reviewed:** 2026-11-02 · **Last updated:** 2026-11-02 · **Change:** minor (0.14.0 sync retaining Finnish interface and embedded Voikko)
+> **Last reviewed:** 2026-11-07 · **Last updated:** 2026-11-07 · **Change:** minor (upstream 0.16.0 sync; Finnish interface and embedded Voikko retained)
 
-This fork includes the Finnish interface and embedded Rust Voikko spelling, suggestions, grammar and hyphenation. New blank documents follow Suomi unless an explicit proofing default is saved; existing documents retain their languages. See [Voikko](voikko.md) and [Finnish interface](localization-fi.md). Upstream base: `fd7f6621` (0.14.0), synced 2026-11-02.
+This fork includes the Finnish interface and embedded Rust Voikko spelling, suggestions, grammar and hyphenation. New blank documents follow Suomi unless an explicit proofing default is saved; existing documents retain their languages. See [Voikko](voikko.md) and [Finnish interface](localization-fi.md). Upstream base: `02a802cb` (0.16.0), synced 2026-11-07.
 
 
 Forward-looking plan. The summary is [`ROADMAP.md`](../ROADMAP.md); the ranked work list is
@@ -65,7 +65,7 @@ partial rows are fidelity gaps (beta work), not broken workflows. WordCraft stay
 | M12 | Formats breadth (PDF, ODT, RTF, HTML, MD, TXT, LaTeX, `.doc` import) | done (first versions); `.doc` write, encryption, minor formats missing | 60–100 h |
 | M13 | Performance budgets | on track (1.4 ms relayout); large real-world documents unmeasured | 10–20 h |
 | M14 | 1.0 polish, packaging, signing | releases v0.1.0–v0.4.0 published (signed macOS, Windows MSI x64/x86/arm64, Linux, FreeBSD, web) | — |
-| M15 | Localization (12 key languages, RTL interface, proofing languages) | 27 UI languages from the shared catalogs pinned by `craft-i18n.rev` (`9205108c…`); proofing: English, Polish, Portuguese, Italian, Croatian, Turkish, Russian, Czech, Indonesian and Spanish, plus Bulgarian and German hyphenation only; native-speaker review and native IME acceptance (#155–#164) remain open | 70–115 h |
+| M15 | Localization (12 key languages, RTL interface, proofing languages) | 28 UI languages from the shared catalogs pinned by `craft-i18n.rev` (Arabic mirrored UI #1195); proofing: English, Polish, Portuguese, Italian, Croatian, Turkish, Russian, Czech, Indonesian and Spanish, plus Bulgarian and German hyphenation only; Hebrew UI, native-speaker review and native IME acceptance (#155–#164) remain open | 55–95 h |
 | M16 | Right-to-left and East Asian typography | RTL paragraphs done (#207) | 30–45 h |
 
 ## Next after beta
@@ -77,6 +77,9 @@ languages, screen-reader access, ecosystem decisions (VBA, add-ins, cloud), an i
 
 | Date | Change | Summary |
 |---|---|---|
+| 2026-11-07 | minor | Synced upstream 0.16.0 (`02a802cb`); retained Finnish interface and embedded Voikko; vendored craft-proof from craft-libs `01315d9` |
+| 2026-11-03 | trivial | DOCX text-frame anchor locks survive JSON and two save/reopen cycles, including position and size edits |
+| 2026-11-03 | minor | M15: Arabic mirrored interface (#1195); 28 UI languages from craft-i18n; Hebrew UI, native-speaker review and native IME acceptance (#155–#164) remain open |
 | 2026-11-02 | minor | Synced upstream 0.14.0 (`fd7f6621`); retained embedded Voikko, regional proofing and Finnish UI through shared catalog migration |
 | 2026-10-29 | trivial | HTML import keeps preformatted lines with CR, CRLF or LF input newlines (#4810); numeric character references retain their separate meaning; readiness estimates unchanged. |
 | 2026-10-25 | trivial | egui 0.37 migration: 27 interface languages remain pinned by `craft-i18n.rev` (9205108…); input-method surrounding-delete and commit handling has synthetic regressions only, with managed CI passing; native acceptance (#155–#164) and native-speaker review remain open |

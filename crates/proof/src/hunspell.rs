@@ -6,8 +6,10 @@
 //! installed the language has no spelling check (no marks, no errors), like Word without the
 //! language's proofing tools.
 //!
-//! Search order: the directory in `WORDCRAFT_DICTIONARIES` (or one set with
-//! [`set_dictionary_dir`]), then the usual system locations. On the web there are none.
+//! Search order: the folder set with [`set_dictionary_dir`], the directory in
+//! `WORDCRAFT_DICTIONARIES`, WordCraft's own `dictionaries` folder under the user's application
+//! data (on every desktop system), then an installed Language pack ([`crate::packs`]), then the
+//! usual system locations. On the web there are only the first and the packs.
 
 use std::path::{Path, PathBuf};
 use std::sync::RwLock;
@@ -15,7 +17,7 @@ use std::sync::RwLock;
 use crate::affix::AffixDict;
 
 /// Largest `.aff` or `.dic` file read (real ones are a few MB).
-const MAX_FILE: u64 = 64 << 20;
+pub(crate) const MAX_FILE: u64 = 64 << 20;
 
 /// An extra directory searched first (a setting), set by the front end.
 static EXTRA_DIR: RwLock<Option<PathBuf>> = RwLock::new(None);
@@ -66,12 +68,23 @@ fn lo_ext_dirs(name: &str) -> Vec<String> {
 /// Directories that may hold Hunspell dictionaries, most specific first. `lo_exts`, when a
 /// language is being searched for, adds LibreOffice's extension folders for it (`dict-pt-BR`).
 pub fn search_dirs(lo_exts: Option<&[String]>) -> Vec<PathBuf> {
+    let (mut dirs, system) = search_tiers(lo_exts);
+    dirs.extend(system);
+    dirs
+}
+
+/// [`search_dirs`] in two tiers: the dictionaries folders (the one set with
+/// [`set_dictionary_dir`], `WORDCRAFT_DICTIONARIES` and WordCraft's own folder under the user's
+/// application data), then the system's Hunspell and LibreOffice folders. Installed Language
+/// packs ([`crate::packs`]) are searched between the two.
+fn search_tiers(lo_exts: Option<&[String]>) -> (Vec<PathBuf>, Vec<PathBuf>) {
     let mut dirs: Vec<PathBuf> = Vec::new();
+    let mut system: Vec<PathBuf> = Vec::new();
     if let Some(d) = EXTRA_DIR.read().unwrap_or_else(std::sync::PoisonError::into_inner).clone() {
         dirs.push(d);
     }
     if cfg!(target_arch = "wasm32") {
-        return dirs;
+        return (dirs, system);
     }
     if let Some(d) = std::env::var_os("WORDCRAFT_DICTIONARIES").filter(|v| !v.is_empty()) {
         dirs.push(PathBuf::from(d));
@@ -84,51 +97,169 @@ pub fn search_dirs(lo_exts: Option<&[String]>) -> Vec<PathBuf> {
         for var in ["LOCALAPPDATA", "APPDATA"] {
             if let Some(base) = std::env::var_os(var).filter(|v| !v.is_empty()).map(PathBuf::from) {
                 dirs.push(base.join("WordCraft").join("dictionaries"));
-                dirs.push(base.join("hunspell"));
+                system.push(base.join("hunspell"));
             }
         }
         for var in ["ProgramFiles", "ProgramFiles(x86)"] {
             if let Some(base) = std::env::var_os(var).filter(|v| !v.is_empty()).map(PathBuf::from) {
-                dirs.extend(lo_dirs(&base.join("LibreOffice").join("share").join("extensions").to_string_lossy()));
+                system.extend(lo_dirs(&base.join("LibreOffice").join("share").join("extensions").to_string_lossy()));
             }
         }
-        // If LibreOffice is installed on another drive (e.g. D:\Program Files\LibreOffice), check drives C..Z
-        for drive in b'C'..=b'Z' {
-            let drive_char = drive as char;
-            for pf in ["Program Files", "Program Files (x86)"] {
-                let lo_base = PathBuf::from(format!(r"{drive_char}:\{pf}\LibreOffice\share\extensions"));
-                if lo_base.is_dir() {
-                    dirs.extend(lo_dirs(&lo_base.to_string_lossy()));
-                }
-            }
-        }
+        system.extend(lo_drive_dirs(lo_exts, || LO_DRIVE_BASES.get_or_init(|| lo_drive_bases(Path::is_dir))));
     } else if cfg!(target_os = "macos") {
         if let Some(h) = &home {
-            dirs.push(h.join("Library/Spelling"));
+            // An app started from Finder or the Dock doesn't see `WORDCRAFT_DICTIONARIES`; this
+            // folder needs no setting (#1063).
+            dirs.push(h.join("Library/Application Support/WordCraft/dictionaries"));
+            system.push(h.join("Library/Spelling"));
         }
-        dirs.push(PathBuf::from("/Library/Spelling"));
-        dirs.push(PathBuf::from("/opt/homebrew/share/hunspell"));
-        dirs.push(PathBuf::from("/usr/local/share/hunspell"));
-        dirs.extend(lo_dirs("/Applications/LibreOffice.app/Contents/Resources/extensions"));
+        system.push(PathBuf::from("/Library/Spelling"));
+        system.push(PathBuf::from("/opt/homebrew/share/hunspell"));
+        system.push(PathBuf::from("/usr/local/share/hunspell"));
+        system.extend(lo_dirs("/Applications/LibreOffice.app/Contents/Resources/extensions"));
     } else {
+        // Nor does one started from a desktop launcher (#1063).
+        if let Some(data) = xdg_data_home(std::env::var_os("XDG_DATA_HOME"), home.as_deref()) {
+            dirs.push(data.join("wordcraft").join("dictionaries"));
+        }
         if let Some(h) = &home {
-            dirs.push(h.join(".local/share/hunspell"));
+            system.push(h.join(".local/share/hunspell"));
         }
         for d in ["/usr/share/hunspell", "/usr/share/myspell", "/usr/share/myspell/dicts", "/usr/local/share/hunspell", "/usr/local/share/myspell"] {
-            dirs.push(PathBuf::from(d));
+            system.push(PathBuf::from(d));
         }
         for d in ["/usr/lib/libreoffice/share/extensions", "/opt/libreoffice/share/extensions"] {
-            dirs.extend(lo_dirs(d));
+            system.extend(lo_dirs(d));
         }
     }
-    dirs
+    (dirs, system)
 }
 
-/// The first `<name>.aff`/`<name>.dic` pair found for any of `names` (`pl_PL`, `pl`), searching
-/// [`search_dirs`] (including LibreOffice's extension folder for the first name).
+/// LibreOffice's language folders (`<drive>:\Program Files\LibreOffice\share\extensions\<ext>`)
+/// on the drives C to Z where LibreOffice is installed (`bases`). No drive is probed without
+/// `lo_exts` (no LibreOffice folders are wanted then).
+fn lo_drive_dirs<'a>(lo_exts: Option<&[String]>, bases: impl FnOnce() -> &'a [PathBuf]) -> Vec<PathBuf> {
+    let Some(exts) = lo_exts else { return Vec::new() };
+    bases().iter().flat_map(|base| exts.iter().map(|e| base.join(e))).collect()
+}
+
+/// The `LibreOffice\share\extensions` folders on drives C to Z (48 probes).
+fn lo_drive_bases(is_dir: impl Fn(&Path) -> bool) -> Vec<PathBuf> {
+    ('C'..='Z')
+        .flat_map(|drive| ["Program Files", "Program Files (x86)"].map(|pf| PathBuf::from(format!(r"{drive}:\{pf}\LibreOffice\share\extensions"))))
+        .filter(|base| is_dir(base))
+        .collect()
+}
+
+/// [`lo_drive_bases`], probed once per process.
+// ponytail: a LibreOffice installed while the app runs is seen after a restart.
+static LO_DRIVE_BASES: std::sync::OnceLock<Vec<PathBuf>> = std::sync::OnceLock::new();
+
+/// The user's data folder on Linux and the BSDs: `$XDG_DATA_HOME` when it is an absolute path (the
+/// XDG Base Directory spec ignores a relative one), else `~/.local/share`.
+fn xdg_data_home(xdg: Option<std::ffi::OsString>, home: Option<&Path>) -> Option<PathBuf> {
+    xdg.map(PathBuf::from).filter(|p| p.is_absolute()).or_else(|| home.map(|h| h.join(".local/share")))
+}
+
+/// The first `<name>.aff`/`<name>.dic` pair found for any of `names` (`pl_PL`, `pl`), in the
+/// order of [`candidates`].
 pub fn find(names: &[&str]) -> Option<(PathBuf, PathBuf)> {
+    candidates(names).into_iter().next()
+}
+
+/// Every `<name>.aff`/`<name>.dic` pair for `names`, best first. A caller that can't read one
+/// tries the next. The order:
+///
+/// 1. the dictionaries folders ([`set_dictionary_dir`] and the others of [`search_dirs`]), any
+///    of `names`;
+/// 2. an installed Language pack of the first name's region ([`crate::packs`],
+///    `spelling.aff`/`spelling.dic`; the bare `es` and `de` packs are Spain's and Germany's);
+/// 3. the system's folders, the first name's region (`pt_BR`, `pt-BR`);
+/// 4. any other installed pack of the language (another region: `pt-pt`, the bare `pt`);
+/// 5. the system's folders, the other names (`pt`).
+pub fn candidates(names: &[&str]) -> Vec<(PathBuf, PathBuf)> {
     let lo = names.first().copied().map(lo_ext_dirs);
-    search_dirs(lo.as_deref()).into_iter().find_map(|dir| find_in(&dir, names))
+    let (dirs, system) = search_tiers(lo.as_deref());
+    let (region_packs, other_packs) = crate::packs::spelling_dirs(names);
+    ordered(names, &dirs, &region_packs, &system, &other_packs)
+}
+
+/// [`candidates`] over the given folders.
+pub(crate) fn ordered(
+    names: &[&str],
+    dirs: &[PathBuf],
+    region_packs: &[PathBuf],
+    system: &[PathBuf],
+    other_packs: &[PathBuf],
+) -> Vec<(PathBuf, PathBuf)> {
+    let norm = |n: &str| n.to_ascii_lowercase().replace('_', "-");
+    let first = names.first().map(|n| norm(n));
+    let (region, rest): (Vec<&str>, Vec<&str>) = names.iter().copied().partition(|n| Some(norm(n)) == first);
+    let pack: &[&str] = &[crate::packs::SPELLING];
+    // (folder, names, a Language pack's: never read through a symbolic link, as the pack scan
+    // checks; a system folder's dictionaries often are links, `en_GB.dic` → `en_GB-ise.dic`).
+    let tiers = dirs
+        .iter()
+        .map(|d| (d, names, false))
+        .chain(region_packs.iter().map(|d| (d, pack, true)))
+        .chain(system.iter().map(|d| (d, &region[..], false)))
+        .chain(other_packs.iter().map(|d| (d, pack, true)))
+        .chain(system.iter().map(|d| (d, &rest[..], false)));
+    let file = |p: &Path, pack: bool| if pack { std::fs::symlink_metadata(p).is_ok_and(|m| m.is_file()) } else { p.is_file() };
+    let mut out: Vec<(PathBuf, PathBuf)> = Vec::new();
+    for (dir, names, in_pack) in tiers {
+        for n in names {
+            let aff = dir.join(format!("{n}.aff"));
+            let dic = dir.join(format!("{n}.dic"));
+            if file(&aff, in_pack) && file(&dic, in_pack) && !out.iter().any(|(_, d)| *d == dic) {
+                out.push((aff, dic));
+            }
+        }
+    }
+    out
+}
+
+/// [`candidates`] without another region's or dialect's dictionary: the dictionaries folders,
+/// then an installed pack named exactly by one of `names` (`en_GB` → `en-gb`), then the system's
+/// folders, `names` only. English uses it: en-GB never falls back to an `en_US` file or pack.
+pub fn candidates_exact(names: &[&str]) -> Vec<(PathBuf, PathBuf)> {
+    let lo = names.first().copied().map(lo_ext_dirs);
+    let (dirs, system) = search_tiers(lo.as_deref());
+    ordered(names, &dirs, &crate::packs::exact_spelling_dirs(names), &system, &[])
+}
+
+/// [`candidates`] in the folders the user keeps dictionaries in for WordCraft ([`user_dirs`])
+/// only, not the system locations.
+pub fn user_candidates(names: &[&str]) -> Vec<(PathBuf, PathBuf)> {
+    candidates_in(&user_dirs(), names)
+}
+
+/// The folders of [`search_dirs`] the user keeps dictionaries in for WordCraft: the one set with
+/// [`set_dictionary_dir`], `WORDCRAFT_DICTIONARIES`, and WordCraft's own `dictionaries` folder
+/// under the user's application data. The rest are the system's (and LibreOffice's).
+pub fn user_dirs() -> Vec<PathBuf> {
+    let extra = EXTRA_DIR.read().unwrap_or_else(std::sync::PoisonError::into_inner).clone();
+    let env = std::env::var_os("WORDCRAFT_DICTIONARIES").filter(|v| !v.is_empty()).map(PathBuf::from);
+    let wordcraft_own = |d: &Path| {
+        d.file_name().is_some_and(|n| n == "dictionaries")
+            && d.parent().and_then(Path::file_name).is_some_and(|n| n.eq_ignore_ascii_case("wordcraft"))
+    };
+    search_dirs(None).into_iter().filter(|d| Some(d) == extra.as_ref() || Some(d) == env.as_ref() || wordcraft_own(d)).collect()
+}
+
+/// [`candidates`] in `dirs`.
+pub fn candidates_in(dirs: &[PathBuf], names: &[&str]) -> Vec<(PathBuf, PathBuf)> {
+    let mut out: Vec<(PathBuf, PathBuf)> = Vec::new();
+    for n in names {
+        for dir in dirs {
+            let aff = dir.join(format!("{n}.aff"));
+            let dic = dir.join(format!("{n}.dic"));
+            if aff.is_file() && dic.is_file() && !out.iter().any(|(_, d)| *d == dic) {
+                out.push((aff, dic));
+            }
+        }
+    }
+    out
 }
 
 /// The first `<name>.aff`/`<name>.dic` pair for any of `names` in `dir`.
@@ -169,6 +300,15 @@ pub fn load(aff: &Path, dic: &Path) -> Result<AffixDict, String> {
     AffixDict::from_hunspell(&aff_text, &dic_text, &[source.as_str()])
 }
 
+/// [`load`] for an English dictionary: flag-based compounding (`COMPOUNDFLAG`…), which this engine
+/// does not implement, is ignored rather than refused ([`AffixDict::from_hunspell_english`]); `OCONV`
+/// is applied to suggestions, as for every language.
+pub fn load_english(aff: &Path, dic: &Path) -> Result<AffixDict, String> {
+    let (aff_text, dic_text) = decode(&read_capped(aff)?, &read_capped(dic)?)?;
+    let source = format!("Hunspell dictionary {}", dic.display());
+    AffixDict::from_hunspell_english(&aff_text, &dic_text, &[source.as_str()])
+}
+
 /// ISO 8859-1: every byte is the code point of the same value (the original VERO pt_BR uses it).
 fn decode_latin1(bytes: &[u8]) -> String {
     bytes.iter().map(|&b| char::from(b)).collect()
@@ -194,8 +334,21 @@ fn decode_latin5(bytes: &[u8]) -> String {
 /// ISO 8859-2 code points 0xA0..=0xFF (0x00..=0x9F map to themselves).
 const ISO_8859_2_HIGH: &str = "\u{a0}Ą˘Ł¤ĽŚ§¨ŠŞŤŹ\u{ad}ŽŻ°ą˛ł´ľśˇ¸šşťź˝žżŔÁÂĂÄĹĆÇČÉĘËĚÍÎĎĐŃŇÓÔŐÖ×ŘŮÚŰÜÝŢßŕáâăäĺćçčéęëěíîďđńňóôőö÷řůúűüýţ˙";
 
-fn decode_latin2(bytes: &[u8]) -> String {
-    let high: Vec<char> = ISO_8859_2_HIGH.chars().collect();
+/// ISO 8859-7 (Greek) code points 0xA0..=0xFF; 0xAE, 0xD2 and 0xFF are unassigned and all read
+/// as U+FFFD. From the
+/// Unicode Consortium's mapping file `MAPPINGS/ISO8859/8859-7.TXT` (2003 edition, with € ₯ ͺ).
+/// The encoding of the Greek dictionary (`SET ISO8859-7`).
+const ISO_8859_7_HIGH: &str =
+    "\u{a0}‘’£€₯¦§¨©ͺ«¬\u{ad}\u{fffd}―°±²³΄΅Ά·ΈΉΊ»Ό½ΎΏΐΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡ\u{fffd}ΣΤΥΦΧΨΩΪΫάέήίΰαβγδεζηθικλμνξοπρςστυφχψωϊϋόύώ\u{fffd}";
+
+/// ISO 8859-15 (Latin-9) code points 0xA0..=0xFF: ISO 8859-1 with € Š š Ž ž Œ œ Ÿ in eight
+/// places. From the Unicode Consortium's mapping file `MAPPINGS/ISO8859/8859-15.TXT`. The
+/// encoding of the Estonian dictionary (`SET ISO8859-15`).
+const ISO_8859_15_HIGH: &str = "\u{a0}¡¢£€¥Š§š©ª«¬\u{ad}®¯°±²³Žµ¶·ž¹º»ŒœŸ¿ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜÝÞßàáâãäåæçèéêëìíîïðñòóôõö÷øùúûüýþÿ";
+
+/// Decode an ISO 8859 part whose bytes 0xA0..=0xFF are `high` (0x00..=0x9F map to themselves).
+fn decode_iso(bytes: &[u8], high: &str) -> String {
+    let high: Vec<char> = high.chars().collect();
     bytes.iter().map(|&b| if b < 0xa0 { char::from(b) } else { high.get(usize::from(b - 0xa0)).copied().unwrap_or('\u{fffd}') }).collect()
 }
 
@@ -216,7 +369,8 @@ fn decode_high(bytes: &[u8], high: &str) -> String {
 
 /// Decode an `.aff`/`.dic` pair to UTF-8 from the encoding the `.aff`'s `SET` line names
 /// (UTF-8 when there is none; ISO 8859-2 is the other one Polish dictionaries use, ISO 8859-1 the
-/// one the original Portuguese VERO uses, ISO 8859-9 the one older Turkish dictionaries use, KOI8-R
+/// one the original Portuguese VERO uses, ISO 8859-7 the Greek one, ISO 8859-15 the Estonian one,
+/// ISO 8859-9 the one older Turkish dictionaries use, KOI8-R
 /// and Windows-1251 the ones older Russian dictionaries use).
 ///
 /// Under a UTF-8 `SET` with single-byte flags (no `FLAG` line, or `FLAG DEFAULT`), flags are bytes,
@@ -237,7 +391,9 @@ pub fn decode(aff: &[u8], dic: &[u8]) -> Result<(String, String), String> {
             Ok((decode_utf8_aff(aff)?, decode_utf8_dic(dic)?))
         }
         "ISO8859-1" | "ISO-8859-1" => Ok((decode_latin1(aff), decode_latin1(dic))),
-        "ISO8859-2" | "ISO-8859-2" => Ok((decode_latin2(aff), decode_latin2(dic))),
+        "ISO8859-2" | "ISO-8859-2" => Ok((decode_iso(aff, ISO_8859_2_HIGH), decode_iso(dic, ISO_8859_2_HIGH))),
+        "ISO8859-7" | "ISO-8859-7" => Ok((decode_iso(aff, ISO_8859_7_HIGH), decode_iso(dic, ISO_8859_7_HIGH))),
+        "ISO8859-15" | "ISO-8859-15" => Ok((decode_iso(aff, ISO_8859_15_HIGH), decode_iso(dic, ISO_8859_15_HIGH))),
         "ISO8859-9" | "ISO-8859-9" => Ok((decode_latin5(aff), decode_latin5(dic))),
         "KOI8-R" | "KOI8R" => Ok((decode_high(aff, KOI8_R_HIGH), decode_high(dic, KOI8_R_HIGH))),
         "CP1251" | "WINDOWS-1251" | "MICROSOFT-CP1251" => Ok((decode_high(aff, CP1251_HIGH), decode_high(dic, CP1251_HIGH))),
@@ -468,6 +624,145 @@ fn decode_utf8_dic(dic: &[u8]) -> Result<String, String> {
 mod tests {
     use super::*;
 
+    /// CodeRabbit on craft-libs#489: without LibreOffice extension names no drive is probed; with
+    /// them, only drives where LibreOffice is found give folders.
+    #[test]
+    fn libreoffice_drives_are_probed_only_when_wanted() {
+        let probes = std::cell::Cell::new(0);
+        let count = |_: &Path| {
+            probes.set(probes.get() + 1);
+            false
+        };
+        // craft-libs#495 review: the drives are probed once, not on every lookup.
+        let cache = std::sync::OnceLock::new();
+        let cached = || cache.get_or_init(|| lo_drive_bases(count)).as_slice();
+        assert!(lo_drive_dirs(None, cached).is_empty());
+        assert_eq!(probes.get(), 0);
+        let exts = ["dict-tr".to_string()];
+        assert!(lo_drive_dirs(Some(&exts), cached).is_empty());
+        assert!(lo_drive_dirs(Some(&exts), cached).is_empty());
+        assert_eq!(probes.get(), 48);
+        let found = lo_drive_bases(|p: &Path| p.to_string_lossy().starts_with(r"D:\Program Files\"));
+        assert_eq!(
+            lo_drive_dirs(Some(&exts), || found.as_slice()),
+            [PathBuf::from(r"D:\Program Files\LibreOffice\share\extensions").join("dict-tr")]
+        );
+    }
+
+    /// Another region's Language pack never beats the system's dictionary of the right region
+    /// (`pt-pt` pack vs system `pt_BR`; `de-ch` vs `de_DE`; `en-gb` vs `en_US`), but beats the
+    /// system's other names; the right region's pack beats the system; the dictionaries folder
+    /// beats everything.
+    #[test]
+    fn another_regions_pack_comes_after_the_systems_exact_region() {
+        let root = std::env::temp_dir().join(format!("wc-proof-order-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        let pair = |dir: &Path, name: &str| {
+            std::fs::create_dir_all(dir).unwrap();
+            std::fs::write(dir.join(format!("{name}.aff")), "SET UTF-8\n").unwrap();
+            std::fs::write(dir.join(format!("{name}.dic")), "1\nx\n").unwrap();
+            dir.join(format!("{name}.dic"))
+        };
+        let (folder, system) = (root.join("folder"), root.join("system"));
+        let en: &[&str] = &["en_US", "en-US", "en", "en_CA", "en_GB", "en-GB", "en_AU"];
+        for (names, exact, other, cross) in [
+            (&["pt_BR", "pt-BR", "pt"][..], "pt_BR", "pt", "pt-pt"),
+            (&["de_DE", "de-DE", "de"][..], "de_DE", "de", "de-ch"),
+            (&["nl_NL", "nl-NL", "nl"][..], "nl_NL", "nl", "nl-be"),
+            (&["es_ES", "es-ES", "es_ANY", "es"][..], "es_ES", "es", "es-mx"),
+            (en, "en_US", "en_GB", "en-gb"),
+        ] {
+            let sys_exact = pair(&system, exact);
+            let sys_other = pair(&system, other);
+            let cross_pack = pair(&root.join("packs").join(cross), crate::packs::SPELLING);
+            let dics = |v: Vec<(PathBuf, PathBuf)>| v.into_iter().map(|(_, d)| d).collect::<Vec<_>>();
+            let got =
+                dics(ordered(names, &[], &[], std::slice::from_ref(&system), std::slice::from_ref(&cross_pack.parent().unwrap().to_path_buf())));
+            assert_eq!(got, [sys_exact.clone(), cross_pack.clone(), sys_other.clone()], "{names:?}");
+            // The region's own pack first, then the system's exact region.
+            let region_pack = pair(&root.join("packs").join(format!("{}-region", names[0])), crate::packs::SPELLING);
+            let got = dics(ordered(names, &[], &[region_pack.parent().unwrap().to_path_buf()], std::slice::from_ref(&system), &[]));
+            assert_eq!(got.first(), Some(&region_pack), "{names:?}");
+            assert_eq!(got.get(1), Some(&sys_exact), "{names:?}");
+            // The dictionaries folder before all of them, whatever name.
+            let mine = pair(&folder, other);
+            let got = dics(ordered(
+                names,
+                std::slice::from_ref(&folder),
+                &[region_pack.parent().unwrap().to_path_buf()],
+                std::slice::from_ref(&system),
+                &[],
+            ));
+            assert_eq!(got.first(), Some(&mine), "{names:?}");
+            assert_eq!(find_in(&folder, &[other]).map(|(_, d)| d), Some(mine));
+            let _ = std::fs::remove_dir_all(&root);
+        }
+    }
+
+    /// Review follow-up (craft-libs#485): a pack's `spelling.aff`/`.dic` that is a symbolic link
+    /// (swapped in after the pack scan) is never a candidate; one in a system folder still is.
+    #[cfg(unix)]
+    #[test]
+    fn pack_files_are_never_read_through_a_link() {
+        let root = std::env::temp_dir().join(format!("wc-proof-pack-links-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        let (pack, system, elsewhere) = (root.join("packs").join("nl"), root.join("system"), root.join("elsewhere"));
+        for d in [&pack, &system, &elsewhere] {
+            std::fs::create_dir_all(d).unwrap();
+        }
+        std::fs::write(elsewhere.join("x.aff"), "SET UTF-8\n").unwrap();
+        std::fs::write(elsewhere.join("x.dic"), "1\nx\n").unwrap();
+        std::fs::write(pack.join("spelling.aff"), "SET UTF-8\n").unwrap();
+        std::os::unix::fs::symlink(elsewhere.join("x.dic"), pack.join("spelling.dic")).unwrap();
+        std::os::unix::fs::symlink(elsewhere.join("x.aff"), system.join("nl.aff")).unwrap();
+        std::os::unix::fs::symlink(elsewhere.join("x.dic"), system.join("nl.dic")).unwrap();
+        let got: Vec<PathBuf> =
+            ordered(&["nl"], &[], std::slice::from_ref(&pack), std::slice::from_ref(&system), &[]).into_iter().map(|(_, d)| d).collect();
+        assert_eq!(got, [system.join("nl.dic")], "the system's link is followed, the pack's never");
+        std::fs::remove_file(pack.join("spelling.dic")).unwrap();
+        std::fs::write(pack.join("spelling.dic"), "1\nx\n").unwrap();
+        let got: Vec<PathBuf> =
+            ordered(&["nl"], &[], std::slice::from_ref(&pack), std::slice::from_ref(&system), &[]).into_iter().map(|(_, d)| d).collect();
+        assert_eq!(got, [pack.join("spelling.dic"), system.join("nl.dic")]);
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    /// WordCraft's own dictionaries folder under the user's application data is searched on every
+    /// desktop system, after the setting and before the shared system locations (#1063).
+    #[test]
+    fn the_app_folder_comes_before_the_system_locations() {
+        if cfg!(target_arch = "wasm32") {
+            return;
+        }
+        let user = if cfg!(windows) { "LOCALAPPDATA" } else { "HOME" };
+        if std::env::var_os(user).filter(|v| !v.is_empty()).is_none() {
+            return; // no user folder to derive it from
+        }
+        let dirs = search_dirs(None);
+        let at = |suffix: &str| dirs.iter().position(|d| d.ends_with(suffix));
+        let (app, shared) = if cfg!(windows) {
+            ("WordCraft/dictionaries", "hunspell")
+        } else if cfg!(target_os = "macos") {
+            ("Application Support/WordCraft/dictionaries", "/Library/Spelling")
+        } else {
+            ("wordcraft/dictionaries", "/usr/share/hunspell")
+        };
+        assert!(matches!((at(app), at(shared)), (Some(app), Some(shared)) if app < shared), "{dirs:?}");
+    }
+
+    /// `$XDG_DATA_HOME` counts only as an absolute path; otherwise (unset, empty or relative) the
+    /// spec's default `~/.local/share` applies, and with no home there is no folder.
+    #[test]
+    fn xdg_data_home_follows_the_spec() {
+        let home = Path::new("/home/a");
+        assert_eq!(xdg_data_home(Some("/data".into()), Some(home)), Some(PathBuf::from("/data")));
+        assert_eq!(xdg_data_home(Some("/data".into()), None), Some(PathBuf::from("/data")));
+        for xdg in [None, Some(""), Some("relative/data")] {
+            assert_eq!(xdg_data_home(xdg.map(Into::into), Some(home)), Some(home.join(".local/share")), "{xdg:?}");
+            assert_eq!(xdg_data_home(xdg.map(Into::into), None), None, "{xdg:?}");
+        }
+    }
+
     #[test]
     fn decodes_latin2_and_utf8() {
         let aff = b"SET ISO8859-2\nTRY a\n";
@@ -498,6 +793,33 @@ mod tests {
         let _ = note_load::<()>(key, dic, Err("too large".into()));
         clear_load_error(key);
         assert_eq!(load_error(key), None);
+    }
+
+    /// Every table covers its 96 (ISO 8859) or 128 (KOI8-R, Windows-1251) high bytes.
+    #[test]
+    fn tables_are_complete() {
+        for t in [ISO_8859_2_HIGH, ISO_8859_7_HIGH, ISO_8859_15_HIGH] {
+            assert_eq!(t.chars().count(), 96, "{t}");
+        }
+        for t in [KOI8_R_HIGH, CP1251_HIGH] {
+            assert_eq!(t.chars().count(), 128, "{t}");
+        }
+    }
+
+    #[test]
+    fn decodes_greek_and_latin9() {
+        // `σπίτι νερό` in ISO 8859-7, and a flag after the slash stays ASCII.
+        let (a, d) = decode(b"SET ISO8859-7\nTRY \xe1\n", b"2\n\xf3\xf0\xdf\xf4\xe9/A\n\xed\xe5\xf1\xfc\n").unwrap();
+        assert!(a.contains("TRY α"), "{a}");
+        assert_eq!(d, "2\nσπίτι/A\nνερό\n");
+        // Unassigned bytes and the 2003 additions.
+        let (_, d) = decode(b"SET ISO-8859-7\n", b"\xae\xd2\xff\xa4\xa5\xaa\xa2").unwrap();
+        assert_eq!(d, "\u{fffd}\u{fffd}\u{fffd}€₯ͺ’");
+        // `šokolaad õun` in ISO 8859-15, and its eight differences from ISO 8859-1.
+        let (_, d) = decode(b"SET ISO8859-15\n", b"\xa8okolaad \xf5un").unwrap();
+        assert_eq!(d, "šokolaad õun");
+        let (_, d) = decode(b"SET ISO-8859-15\n", b"\xa4\xa6\xa8\xb4\xb8\xbc\xbd\xbe\xe4").unwrap();
+        assert_eq!(d, "€ŠšŽžŒœŸä");
     }
 
     #[test]
@@ -639,6 +961,26 @@ mod tests {
         let dirs = search_dirs(Some(&super::lo_ext_dirs("pt_BR")));
         assert!(dirs.iter().any(|d| d.ends_with("dict-pt-BR")), "{dirs:?}");
         assert!(search_dirs(None).iter().all(|d| !d.to_string_lossy().contains("dict-")), "no language: no LibreOffice guess");
+    }
+
+    /// craft-libs#482 re-review: a name is looked for in every folder before the next name, so
+    /// an `en_US` in the dictionaries folder doesn't beat a system `en_GB` for British English.
+    #[test]
+    fn candidates_go_name_by_name_across_the_folders() {
+        let base = std::env::temp_dir().join(format!("wordcraft-candidates-{}", std::process::id()));
+        let (folder, system) = (base.join("folder"), base.join("system"));
+        for (dir, name) in [(&folder, "en_US"), (&system, "en_GB"), (&folder, "en-GB")] {
+            std::fs::create_dir_all(dir).unwrap();
+            std::fs::write(dir.join(format!("{name}.aff")), "SET UTF-8\n").unwrap();
+            std::fs::write(dir.join(format!("{name}.dic")), "1\nx\n").unwrap();
+        }
+        let dirs = [folder.clone(), system.clone()];
+        let dics: Vec<PathBuf> = candidates_in(&dirs, &["en_GB", "en-GB"]).into_iter().map(|(_, d)| d).collect();
+        assert_eq!(dics, vec![system.join("en_GB.dic"), folder.join("en-GB.dic")]);
+        let us: Vec<PathBuf> = candidates_in(&dirs, &["en_US", "en_GB"]).into_iter().map(|(_, d)| d).collect();
+        assert_eq!(us, vec![folder.join("en_US.dic"), system.join("en_GB.dic")]);
+        assert!(candidates_in(&dirs, &["en_CA"]).is_empty());
+        let _ = std::fs::remove_dir_all(&base);
     }
 
     #[test]

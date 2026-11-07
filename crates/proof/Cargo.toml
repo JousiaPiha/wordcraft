@@ -1,19 +1,22 @@
 [package]
-name = "wordcraft-proof"
+name = "craft-proof"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "WordCraft proofing per language: spelling, suggestions, grammar checks and hyphenation for English (public-domain word list) and Polish (installed Hunspell dictionary, TeX patterns)"
+rust-version.workspace = true
+repository.workspace = true
+description = "Proofing per language for the Craft Apps: spelling, suggestions, grammar checks and hyphenation, a Hunspell .aff/.dic reader, and user and ignored words. Language data is embedded from craft-i18n at build time (CRAFT_I18N_DIR)."
+build = "build.rs"
 
 [lints]
 workspace = true
 
 [dependencies]
-log = { workspace = true }
-miniz_oxide = "0.9"
-unicode-normalization = "0.1"
-
 wordcraft-voikko = { path = "../voikko" }
+log = "0.4"
+miniz_oxide = "0.9"
+toml = { version = "1", default-features = false, features = ["parse", "serde", "std"] }
+unicode-normalization = "0.1"
 
 [dev-dependencies]
 proptest = { workspace = true }

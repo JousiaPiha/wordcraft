@@ -28,12 +28,9 @@ const COMMON_REPLACEMENTS: &[(&str, &str)] = &[
     ("sarmısak", "sarımsak"),
     ("makina", "makine"),
     ("ünvan", "unvan"),
-    ("rastlantı", "rastlantı"),
     ("labaratuvar", "laboratuvar"),
     ("laboratuar", "laboratuvar"),
-    ("kravat", "kravat"),
     ("gardolap", "gardırop"),
-    ("egzoz", "egzoz"),
     ("egzozt", "egzoz"),
     ("egsoz", "egzoz"),
     ("gelcen", "geleceksin"),
@@ -73,7 +70,7 @@ pub fn suggest_with(d: &TrDict, word: &str, max: usize) -> Vec<String> {
     // 1. Check direct common replacement table
     for &(wrong, right) in COMMON_REPLACEMENTS {
         if lower == wrong && seen.insert(right.to_string()) {
-            suggestions.push(right.to_string());
+            suggestions.push(match_casing(word, right));
             if suggestions.len() >= max {
                 return suggestions;
             }
@@ -88,7 +85,10 @@ pub fn suggest_with(d: &TrDict, word: &str, max: usize) -> Vec<String> {
     if !d.is_empty() {
         let variants = generate_diacritic_variants(&lower);
         for cand in variants {
-            if cand != lower && d.contains(&cand) && seen.insert(cand.clone()) {
+            if cand != lower
+                && let Some(cand) = in_dictionary(d, &cand)
+                && seen.insert(cand.clone())
+            {
                 suggestions.push(match_casing(word, &cand));
                 if suggestions.len() >= max {
                     return suggestions;
@@ -97,8 +97,8 @@ pub fn suggest_with(d: &TrDict, word: &str, max: usize) -> Vec<String> {
         }
     }
 
-    // 3. Detached suffix check: `-de`, `-da`, `-mi`, `-mı`, `-mu`, `-mü`
-    for suffix in ["de", "da", "te", "ta", "mi", "mı", "mu", "mü"] {
+    // 3. Detached particle check: `-de`, `-da`, `-mi`, `-mı`, `-mu`, `-mü`
+    for suffix in ["de", "da", "mi", "mı", "mu", "mü"] {
         if lower.ends_with(suffix) && lower.len() > suffix.len() + 1 {
             let stem = &lower[..lower.len() - suffix.len()];
             if d.is_empty() || d.contains(stem) {
@@ -124,7 +124,9 @@ pub fn suggest_with(d: &TrDict, word: &str, max: usize) -> Vec<String> {
                 let mut swapped = chars.clone();
                 swapped.swap(i, i + 1);
                 let cand: String = swapped.into_iter().collect();
-                if d.contains(&cand) && seen.insert(cand.clone()) {
+                if let Some(cand) = in_dictionary(d, &cand)
+                    && seen.insert(cand.clone())
+                {
                     suggestions.push(match_casing(word, &cand));
                     if suggestions.len() >= max {
                         return suggestions;
@@ -144,7 +146,9 @@ pub fn suggest_with(d: &TrDict, word: &str, max: usize) -> Vec<String> {
             let mut deleted = chars.clone();
             deleted.remove(i);
             let cand: String = deleted.into_iter().collect();
-            if d.contains(&cand) && seen.insert(cand.clone()) {
+            if let Some(cand) = in_dictionary(d, &cand)
+                && seen.insert(cand.clone())
+            {
                 suggestions.push(match_casing(word, &cand));
                 if suggestions.len() >= max {
                     return suggestions;
@@ -161,7 +165,9 @@ pub fn suggest_with(d: &TrDict, word: &str, max: usize) -> Vec<String> {
                         *target = c;
                     }
                     let cand: String = substituted.into_iter().collect();
-                    if d.contains(&cand) && seen.insert(cand.clone()) {
+                    if let Some(cand) = in_dictionary(d, &cand)
+                        && seen.insert(cand.clone())
+                    {
                         suggestions.push(match_casing(word, &cand));
                         if suggestions.len() >= max {
                             return suggestions;
@@ -177,7 +183,9 @@ pub fn suggest_with(d: &TrDict, word: &str, max: usize) -> Vec<String> {
                 let mut inserted = chars.clone();
                 inserted.insert(i, c);
                 let cand: String = inserted.into_iter().collect();
-                if d.contains(&cand) && seen.insert(cand.clone()) {
+                if let Some(cand) = in_dictionary(d, &cand)
+                    && seen.insert(cand.clone())
+                {
                     suggestions.push(match_casing(word, &cand));
                     if suggestions.len() >= max {
                         return suggestions;
@@ -258,10 +266,34 @@ pub fn turkish_to_lower(s: &str) -> String {
     out
 }
 
+/// Turkish uppercase with dotted/dotless I support (`i` -> `İ`, `ı` -> `I`).
+pub fn turkish_to_upper(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    for c in s.chars() {
+        match c {
+            'i' => out.push('İ'),
+            'ı' => out.push('I'),
+            other => out.extend(other.to_uppercase()),
+        }
+    }
+    out
+}
+
+/// `cand` (lower case) as the dictionary writes it: itself, or capitalized for a name
+/// (`İstanbul`), which a lower-case lookup doesn't find.
+fn in_dictionary(d: &TrDict, cand: &str) -> Option<String> {
+    if d.contains(cand) {
+        return Some(cand.to_string());
+    }
+    let cap = super::grammar::turkish_capitalize(cand);
+    d.contains(&cap).then_some(cap)
+}
+
 /// Match original casing on suggestion.
 fn match_casing(orig: &str, cand: &str) -> String {
-    if orig.chars().all(char::is_uppercase) {
-        cand.to_uppercase()
+    let mut letters = orig.chars().filter(|c| c.is_alphabetic()).peekable();
+    if letters.peek().is_some() && letters.all(char::is_uppercase) {
+        turkish_to_upper(cand)
     } else if orig.chars().next().is_some_and(char::is_uppercase) {
         super::grammar::turkish_capitalize(cand)
     } else {
@@ -272,6 +304,19 @@ fn match_casing(orig: &str, cand: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// CodeRabbit on craft-libs#484/#489: a suggestion in capitals uses Turkish capitals
+    /// (`İ`, not `I`), and no table entry suggests the word itself.
+    #[test]
+    fn capitals_are_turkish_and_no_entry_suggests_itself() {
+        assert_eq!(match_casing("KİTAPP", "kitap"), "KİTAP");
+        assert_eq!(match_casing("ISTANBUL", "istanbul"), "İSTANBUL");
+        assert_eq!(match_casing("KAPI", "kapı"), "KAPI");
+        assert_eq!(turkish_to_upper("ıiçşğüö"), "IİÇŞĞÜÖ");
+        let d = TrDict::from_hunspell("SET UTF-8\n", "2\nkitap\nistanbul\n").unwrap();
+        assert!(suggest_with(&d, "KİTAPP", 3).contains(&"KİTAP".to_string()));
+        assert!(COMMON_REPLACEMENTS.iter().all(|(a, b)| a != b));
+    }
 
     #[test]
     fn common_replacements_are_suggested() {
@@ -288,6 +333,19 @@ mod tests {
         assert!(sugs.contains(&"geldin mi".to_string()));
     }
 
+    /// craft-libs#496 review: the particle is `de`/`da` whatever consonant comes before it. `te`
+    /// and `ta` are only the locative suffix after a voiceless consonant (`kitapta`), written
+    /// attached, so `kitapte` is never offered as `kitap te`.
+    #[test]
+    fn the_detached_particle_is_never_te_or_ta() {
+        let d = TrDict::from_hunspell("SET UTF-8\n", "2\nkitap\nsonra\n").unwrap();
+        assert!(suggest_with(&d, "kitapde", 8).contains(&"kitap de".to_string()));
+        for w in ["kitapte", "kitapta"] {
+            let sugs = suggest_with(&d, w, 8);
+            assert!(!sugs.iter().any(|s| s == "kitap te" || s == "kitap ta"), "{w}: {sugs:?}");
+        }
+    }
+
     #[test]
     fn overlong_words_get_no_suggestions_promptly() {
         let d = TrDict::from_hunspell("SET UTF-8\nSFX 1 Y 1\nSFX 1 0 lar .\n", "2\nkitap/1\nsonra\n").unwrap();
@@ -302,11 +360,24 @@ mod tests {
         assert!(t.elapsed().as_secs_f64() < 10.0, "{:?}", t.elapsed());
     }
 
+    /// craft-libs#495 review: a name in the dictionary (`İstanbul`, `Ankara`) is found by the
+    /// diacritic and typo steps from a lower-case slip, in its dictionary case.
+    #[test]
+    fn capitalized_stems_are_suggested() {
+        let d = TrDict::from_hunspell("SET UTF-8\n", "2\nİstanbul\nAnkara\n").unwrap();
+        assert!(suggest_with(&d, "istanbu", 3).contains(&"İstanbul".to_string()), "{:?}", suggest_with(&d, "istanbu", 3));
+        assert!(suggest_with(&d, "ankraa", 3).contains(&"Ankara".to_string()), "{:?}", suggest_with(&d, "ankraa", 3));
+        assert!(suggest_with(&d, "Istanbul", 3).contains(&"İstanbul".to_string()), "{:?}", suggest_with(&d, "Istanbul", 3));
+    }
+
     #[test]
     fn two_words_get_only_the_tables_replacement() {
         let d = TrDict::from_hunspell("SET UTF-8\n", "2\nbirkaç\nsonra\n").unwrap();
         assert_eq!(suggest_with(&d, "bir kaç", 3), vec!["birkaç".to_string()]);
-        assert_eq!(suggest_with(&d, "Bir kaç", 3), vec!["birkaç".to_string()]);
+        // craft-libs#487 review: the table keeps the word's case.
+        assert_eq!(suggest_with(&d, "Bir kaç", 3), vec!["Birkaç".to_string()]);
+        assert_eq!(suggest_with(&d, "BİR KAÇ", 3), vec!["BİRKAÇ".to_string()]);
+        assert_eq!(suggest_with(&d, "Herşey", 3), vec!["Her şey".to_string()]);
         assert!(suggest_with(&d, "sorna sorna", 3).is_empty());
     }
 

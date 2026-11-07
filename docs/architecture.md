@@ -1,8 +1,8 @@
 # WordCraft architecture
 
-> **Last reviewed:** 2026-11-02 · **Last updated:** 2026-11-02 · **Change:** minor (0.14.0 sync retaining Finnish interface and embedded Voikko)
+> **Last reviewed:** 2026-11-07 · **Last updated:** 2026-11-07 · **Change:** minor (upstream 0.16.0 sync; Finnish interface and embedded Voikko retained)
 
-This fork includes the Finnish interface and embedded Rust Voikko spelling, suggestions, grammar and hyphenation. New blank documents follow Suomi unless an explicit proofing default is saved; existing documents retain their languages. See [Voikko](voikko.md) and [Finnish interface](localization-fi.md). Upstream base: `fd7f6621` (0.14.0), synced 2026-11-02.
+This fork includes the Finnish interface and embedded Rust Voikko spelling, suggestions, grammar and hyphenation. New blank documents follow Suomi unless an explicit proofing default is saved; existing documents retain their languages. See [Voikko](voikko.md) and [Finnish interface](localization-fi.md). Upstream base: `02a802cb` (0.16.0), synced 2026-11-07.
 
 
 How WordCraft is built today. The longer design notes in
@@ -25,7 +25,7 @@ crate name links to its source tree.
 | L1 | [`doc`](../crates/doc/src) | 23,719 | Document model: stories, paragraphs, runs, tables, sections, styles, numbering, fields, notes, comments, revisions and equations; edit primitives and bidi |
 | L1 | [`fonts`](../crates/fonts/src) | 7,088 | Font database, metrics, outlines, HarfRust shaping, Word font substitution and OpenType MATH |
 | L1 | [`metafile`](../crates/metafile/src) | 3,614 | Shared Windows Metafile parsing and drawing primitives used by format readers and renderers |
-| L1 | [`proof`](../crates/proof/src) | 16,326 | Fifteen spelling dictionaries: English (US, GB, CA), Polish, Portuguese, Italian, Croatian, Turkish, Russian, Czech, Indonesian and Spanish (Spain, Mexico, Latin America, Uruguay); language modules provide spelling, suggestions and grammar, while Bulgarian and German have hyphenation only |
+| L1 | `crates/proof` (vendored [`craft-proof`](https://github.com/storytold/craft-libs/tree/01315d9c92b5b0e69082d35ca56099461a1efd45/crates/proof), package alias `wordcraft-proof`) | — | Proofing originated in craft-libs (CP1, 2026-11): fifteen spelling dictionaries: English (US, GB, CA), Polish, Portuguese, Italian, Croatian, Turkish, Russian, Czech, Indonesian and Spanish (Spain, Mexico, Latin America, Uruguay); language modules provide spelling, suggestions and grammar, while Bulgarian and German have hyphenation only. Its word lists and patterns are craft-i18n's `language-data/`, embedded from `CRAFT_I18N_DIR` at the commit in `craft-i18n.rev` (CI and releases set `CRAFT_I18N_REQUIRED=1`); without them English spelling falls back to an installed Hunspell English or craft-proof's built-in Moby list, and pattern hyphenation is off (Bulgarian, Turkish and Russian hyphenate by rule) |
 | L2 | [`docbin`](../crates/docbin/src) | 8,815 | Word 97–2003 `.doc` reader (FIB, piece table, FKPs, SPRMs, stylesheet, lists, tables, notes, pictures) over a CFB container |
 | L2 | [`docx`](../crates/docx/src) | 37,376 | OOXML WordprocessingML reader/writer (Transitional and Strict), OMML, custom properties and preserved VBA parts |
 | L2 | [`formats`](../crates/formats/src) | 23,058 | TXT, Markdown, HTML, RTF, ODT and LaTeX import/export through the shared document model |
@@ -74,6 +74,9 @@ Proofing in `layout::para::paragraph_issues` is shared by page underlines and en
 
 | Date | Change | Summary |
 |---|---|---|
+| 2026-11-07 | minor | Synced upstream 0.16.0 (`02a802cb`); retained Finnish interface and embedded Voikko; vendored craft-proof from craft-libs `01315d9` |
+| 2026-11-02 | trivial | craft-proof's row: without the Language data English spelling falls back to an installed Hunspell English or the built-in Moby list, and only pattern hyphenation is off (#5202 review) |
+| 2026-11-01 | minor | Upstream moved `proof` out of its workspace: it became `craft-proof` in storytold/craft-libs (with its history), and the spelling and hyphenation data is craft-i18n's `language-data/` (`CRAFT_I18N_DIR`); `assets/spelling` and `assets/hyphenation` are gone |
 | 2026-11-02 | minor | Synced upstream 0.14.0 (`fd7f6621`); retained embedded Voikko, regional proofing and Finnish UI through shared catalog migration |
 | 2026-10-28 | major | Recounted workspace crates, layers and Rust source lines; refreshed proofing languages and documented current engine/layout module boundaries and source links |
 | 2026-10-10 | minor | `proof`: proofing languages (English, Polish), affix engine, Polish patterns; layout and engine route each run by its language |

@@ -288,24 +288,24 @@ fn spaces(text: &str, v: &mut Vec<Issue>) {
         let Some(p) = it.next() else { continue };
         let after = it.next();
         let flag = match p {
-            ',' => true,
+            // ` ,,` opens a typed quote (the doubled-punctuation rule suggests `„`).
+            ',' => after != Some(','),
             // `;)` and `;-)` are emoticons.
             ';' => !matches!(after, Some(')' | '(' | '-' | 'P' | 'D')),
             // ` ...` is an ellipsis, ` .5` a number.
             '.' => !matches!(after, Some('.')) && !after.is_some_and(|a| a.is_ascii_digit()),
             // ` :)`, ` :-)`, ` :D` and similar are emoticons; ` ?!` is still a stray space.
-            ':' | '!' | '?' => after.is_none_or(|a| a.is_whitespace() || matches!(a, '"' | '”' | '»' | '’' | '!' | '?')),
+            ':' | '!' | '?' => {
+                !crate::score_colon(text, i) && after.is_none_or(|a| a.is_whitespace() || matches!(a, '"' | '”' | '»' | '’' | '!' | '?'))
+            }
             _ => false,
         };
         if flag {
             v.push(issue(i, i + 1 + p.len_utf8(), "Zbędna spacja przed znakiem interpunkcyjnym".into(), vec![p.to_string()]));
         }
     }
-    for (i, _) in text.match_indices("  ") {
-        if i > 0 && text.get(..i).is_some_and(|t| t.ends_with(' ')) {
-            continue;
-        }
-        v.push(issue(i, i + 2, "Podwójna spacja".into(), vec![" ".into()]));
+    for run in crate::space_runs(text) {
+        v.push(issue(run.start, run.end, "Podwójna spacja".into(), vec![" ".into()]));
     }
 }
 

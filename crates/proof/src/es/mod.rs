@@ -245,6 +245,8 @@ mod tests {
     /// composed form (NFC) and keeps its own byte range, accents and all.
     #[test]
     fn decomposed_accents_are_checked_like_composed_ones() {
+        // English results depend on the dictionaries other tests install.
+        crate::hold_dictionary_tests();
         test_dict::install();
         for lang in VARIETIES {
             for text in ["esto también", "esto tambie\u{301}n", "una cancio\u{301}n y pingu\u{308}ino", "CANCIO\u{301}N", "nin\u{303}o"] {
@@ -272,7 +274,7 @@ mod tests {
     fn missing_dictionary_and_ignored_inputs_are_quiet() {
         let empty = AffixDict::default();
         assert!(is_correct_with(&empty, "prueva", ProofLang::Es));
-        assert!(install_dictionary(ProofLang::Es, "FLAG long\n", "1\ncasa\n").is_err());
+        assert!(install_dictionary(ProofLang::Es, "FLAG bogus\n", "1\ncasa\n").is_err());
         let d = AffixDict::from_hunspell(test_dict::AFF, test_dict::DIC, &[]).unwrap();
         for w in ["", "a", "2026", "EE", "1.º", "日本語", "-", "--"] {
             assert!(is_correct_with(&d, w, ProofLang::EsUy), "{w}");
@@ -289,6 +291,8 @@ mod tests {
 
     #[test]
     fn spanish_dispatch_messages_options_and_mixed_spans() {
+        // English results depend on the dictionaries other tests install.
+        crate::hold_dictionary_tests();
         test_dict::install();
         for tag in ["es-ES", "es-MX", "es-419", "es-AR", "es-UY", "spa"] {
             assert!(crate::has_dictionary(Some(tag)), "{tag}");

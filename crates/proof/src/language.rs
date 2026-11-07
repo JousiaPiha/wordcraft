@@ -37,10 +37,11 @@ pub fn status(language: &str) -> Status {
         let reason = backend::status().err();
         Status { available: reason.is_none(), backend: "voikko-rust", reason }
     } else {
-        let Some(proof) = crate::language(crate::ProofLang::from_tag(Some(language))) else {
+        let lang = crate::ProofLang::from_tag(Some(language));
+        let available = crate::dictionary_loaded(lang).unwrap_or(false);
+        if lang == crate::ProofLang::Other {
             return Status { available: false, backend: "none", reason: Some("No proofing dictionary for this language".into()) };
-        };
-        let available = proof.slot.has_dictionary();
+        }
         Status { available, backend: "hunspell", reason: (!available).then(|| "No installed Hunspell dictionary for this language".into()) }
     }
 }
@@ -230,13 +231,13 @@ mod tests {
 
     #[test]
     fn dispatch_does_not_apply_english_to_other_languages() {
-        assert!(check_spelling("koirra", "sv-SE").is_empty());
-        assert!(!status("sv-SE").available);
+        assert!(check_spelling("koirra", "zxx").is_empty());
+        assert!(!status("zxx").available);
         let british = check_spelling("helo", "EN-gb");
         assert_eq!(british.len(), 1);
         assert_eq!((british[0].start, british[0].end, british[0].lang), (0, 4, crate::ProofLang::EnGb));
-        assert!(check_grammar("a apple", "sv-SE").is_empty());
-        assert!(hyphenate("university", "sv-SE", &crate::hyphen::Limits::default()).is_empty());
+        assert!(check_grammar("a apple", "zxx").is_empty());
+        assert!(hyphenate("university", "zxx", &crate::hyphen::Limits::default()).is_empty());
         assert_eq!(suggest("wrold", "", 3), crate::suggest("wrold", 3));
     }
 

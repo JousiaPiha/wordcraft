@@ -1,10 +1,10 @@
 # Finnish interface
 
-> **Last reviewed:** 2026-11-02 · **Last updated:** 2026-11-02 · **Change:** minor (Finnish interface integrated with embedded Voikko) · **Target:** WordCraft 0.14.0
+> **Last reviewed:** 2026-11-07 · **Last updated:** 2026-11-07 · **Change:** minor (Finnish interface integrated with embedded Voikko) · **Target:** WordCraft 0.16.0
 
-## Upstream 0.14.0 sync (2026-11-02)
+## Upstream 0.16.0 sync (2026-11-07)
 
-Synced upstream `fd7f6621` while preserving embedded Rust Voikko and the Finnish
+Synced upstream `02a802cb` while preserving embedded Rust Voikko and the Finnish
 interface. Upstream now loads translations from the pinned `craft-i18n` checkout;
 this fork also embeds its Finnish catalog as a fallback. Release builds use
 `CRAFT_I18N_DIR` at the revision in `craft-i18n.rev` for the other interface languages.
@@ -87,6 +87,7 @@ passed. This includes the rendered-interface translation audit.
 
 | Date | Change | Summary |
 |---|---|---|
+| 2026-11-07 | minor | Synced upstream 0.16.0 (`02a802cb`); retained Finnish interface and embedded Voikko with craft-proof vendored from craft-libs `01315d9` |
 | 2026-11-02 | minor | Synced upstream 0.14.0 (`fd7f6621`); retained embedded Voikko, regional proofing and Finnish UI through shared catalog migration |
 | 2026-10-22 | minor | Merged PR #2807 into the 0.10.0 Voikko build; 72 current-label translations, 2,750 entries, blank-document proofing and preference-precedence checks |
 | 2026-10-18 | minor | Finnish catalog (2,620 entries: every key of every other catalog plus the regional German proofing strings), conventions, terminology, scope and regression checks (#2740) |

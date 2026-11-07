@@ -63,7 +63,8 @@ fn check(d: &AffixDict, word: &str, opts: &crate::Options) -> bool {
         return true;
     };
     if w.contains('-') {
-        return w.split('-').all(|p| p.chars().count() <= 1 || known(d, p));
+        // The whole word first, as Hunspell does: a hyphenated entry or user word.
+        return known(d, w) || w.split('-').all(|p| p.chars().count() <= 1 || known(d, p));
     }
     known(d, w)
 }
@@ -142,11 +143,19 @@ mod tests {
         }
     }
 
+    /// craft-libs#496 review: a hyphenated dictionary entry is a word even when its parts aren't.
+    #[test]
+    fn a_hyphenated_entry_is_looked_up_whole() {
+        let d = AffixDict::from_hunspell("SET UTF-8\n", "1\ntic-tac\n", &[]).unwrap();
+        assert!(is_correct_with(&d, "tic-tac"));
+        assert!(!is_correct_with(&d, "tic-tacc"));
+    }
+
     #[test]
     fn missing_dictionary_and_ignored_inputs_are_quiet() {
         let empty = AffixDict::default();
         assert!(is_correct_with(&empty, "pocitac"));
-        assert!(install_dictionary("FLAG long\n", "1\nstrom\n").is_err());
+        assert!(install_dictionary("FLAG bogus\n", "1\nstrom\n").is_err());
         let d = AffixDict::from_hunspell(test_dict::AFF, test_dict::DIC, &[]).unwrap();
         for w in ["", "a", "2026", "ČR", "článek2", "日本語"] {
             assert!(is_correct_with(&d, w), "{w}");
@@ -163,6 +172,8 @@ mod tests {
 
     #[test]
     fn czech_dispatch_messages_options_and_mixed_spans() {
+        // English results depend on the dictionaries other tests install.
+        crate::hold_dictionary_tests();
         test_dict::install();
         assert!(crate::has_dictionary(Some("cs-CZ")));
         assert!(crate::is_correct_for("městě", Some("cze")));

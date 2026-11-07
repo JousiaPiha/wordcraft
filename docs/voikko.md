@@ -1,17 +1,62 @@
 # Finnish proofing with Voikko
 
-> **Last reviewed:** 2026-11-02 · **Last updated:** 2026-11-02 · **Change:** minor (upstream 0.10.0 and Finnish interface integration)
+> **Last reviewed:** 2026-11-07 · **Last updated:** 2026-11-07 · **Change:** minor (upstream 0.16.0 sync retaining Finnish proofing)
 
-## Upstream 0.14.0 sync (2026-11-02)
+## Upstream 0.16.0 sync (2026-11-07)
 
-Synced upstream `fd7f6621` while preserving embedded Rust Voikko and the Finnish
+Synced upstream `02a802cb` while preserving embedded Rust Voikko and the Finnish
 interface. Upstream now loads translations from the pinned `craft-i18n` checkout;
 this fork also embeds its Finnish catalog as a fallback. Release builds use
 `CRAFT_I18N_DIR` at the revision in `craft-i18n.rev` for the other interface languages.
 Finnish remains available without that optional checkout. Mixed Finnish text keeps
 the upstream English and Spanish regional proofing variants.
 
-Validation: all eight `cargo +1.95.0 xtask ci` gates passed, 4,818 tests passed,
+The complete CI run on 2026-11-07 did not pass: three upstream pagination
+tests concerning floats and footnotes also fail against the untouched 0.16.0
+release on this machine. The fork owner requested merging and pushing this
+version despite those known failures so it can be built and tested on the Mac.
+With those three tests excluded, 5,872 workspace tests passed; formatting,
+Clippy, the translation audit, language-data check, doctests, assets, layering
+and WebAssembly checks passed. The translation audit reported 67 interface
+strings without Finnish translations; they fall back to English. The packaged
+CLI passed Finnish spelling, suggestions, grammar and DOCX reopen checks.
+
+The three failing tests are in `wordcraft-layout`:
+
+- `a_float_anchored_on_a_line_a_footnote_pushes_on_is_drawn_on_the_next_page`
+- `a_float_anchored_on_a_line_widow_control_takes_on_is_drawn_on_the_next_page`
+- `a_footnote_pushed_on_by_a_float_coming_back_is_on_its_reference_s_page_only`
+
+### Building 0.16.0 on Apple Silicon
+
+Use the fork's `main` branch with native ARM64 Rust and Xcode Command Line Tools.
+The commands below run from the WordCraft repository root. They embed the pinned
+shared language data as well as the fork's Finnish interface and Voikko data:
+
+```sh
+rustup toolchain install 1.95.0 --profile minimal
+rustup target add --toolchain 1.95.0 aarch64-apple-darwin
+i18n_dir="$(mktemp -d "${TMPDIR:-/tmp}/wordcraft-i18n.XXXXXX")"
+git clone https://github.com/storytold/craft-i18n.git "$i18n_dir"
+git -C "$i18n_dir" checkout --detach "$(cat craft-i18n.rev)"
+export RUSTUP_TOOLCHAIN=1.95.0
+export CRAFT_I18N_DIR="$i18n_dir" CRAFT_I18N_REQUIRED=1
+cargo test --locked -p wordcraft-voikko -p craft-proof
+cargo test --locked -p wordcraft-engine -p wordcraft-ui-egui finnish
+cargo run --locked -p wordcraft-voikko --example smoke
+MACOS_SIGN_IDENTITY=- bash packaging/macos/package.sh --arch aarch64
+hdiutil verify dist/release/wordcraft-0.16.0-macos-aarch64.dmg
+```
+
+The outputs are `dist/release/wordcraft-0.16.0-macos-aarch64.dmg` and
+`dist/release/wordcraft-cli-0.16.0-macos-aarch64.zip`. The packaging script verifies
+the app's ad-hoc signature before and after placing it inside the DMG. These
+personal test builds are not notarized. This 0.16.0 port still needs a native Mac
+build and the manual checks below; the older Mac results do not validate it.
+
+## Upstream 0.14.0 validation (2026-11-02)
+
+All eight `cargo +1.95.0 xtask ci` gates passed, 4,818 tests passed,
 none failed and four upstream tests were ignored; all 17 WebAssembly crates checked.
 The graphical tests used Mesa software drivers (`VK_DRIVER_FILES` selecting
 `lvp_icd.json`, Mesa EGL vendor selection, `LIBGL_ALWAYS_SOFTWARE=1`) after the
@@ -79,7 +124,7 @@ No system Voikko installation is needed for any of these tests. Finnish tests
 run in the normal suite rather than being ignored:
 
 ```sh
-cargo test --locked -p wordcraft-voikko -p wordcraft-proof -p wordcraft-layout -p wordcraft-engine
+cargo test --locked -p wordcraft-voikko -p craft-proof -p wordcraft-layout -p wordcraft-engine
 cargo run --locked -p wordcraft-voikko --example smoke
 cargo xtask ci
 ```
@@ -290,6 +335,7 @@ precedence of an explicitly saved proofing default.
 
 | Date | Change | Summary |
 | --- | --- | --- |
+| 2026-11-07 | minor | Synced upstream 0.16.0 (`02a802cb`); retained Finnish interface and embedded Voikko with craft-proof vendored from craft-libs `01315d9` |
 | 2026-11-02 | minor | Synced upstream 0.14.0 (`fd7f6621`); retained embedded Voikko, regional proofing and Finnish UI through shared catalog migration |
 | 2026-10-14 | minor | Synced upstream 0.7.0; retained Finnish and integrated Italian/Croatian routing and upstream spelling optimization |
 | 2026-10-13 | minor | Owner confirmed the Mac version works; recorded overall Mac acceptance separately from automated checks and unreported manual details; Windows testing remains pending |
