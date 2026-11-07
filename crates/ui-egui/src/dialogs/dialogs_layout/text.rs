@@ -327,7 +327,7 @@ impl LanguageForm {
         let s = &app.session;
         let style = s.doc.para_at(&s.sel.focus).and_then(|p| p.props.style.as_deref());
         let here = s.doc.styles.resolve_char(style, &s.typing_props());
-        let lang = here.lang.unwrap_or_else(|| "en-US".into());
+        let lang = wordcraft_engine::cmd::review::caret_language(s);
         LanguageForm { lang, no_proof: here.no_proof, detect: s.prefs.detect_language }
     }
 

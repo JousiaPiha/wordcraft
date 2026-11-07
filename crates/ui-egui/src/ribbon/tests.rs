@@ -260,6 +260,7 @@ fn listed_only(tag: &str) -> Vec<bool> {
 #[test]
 fn language_menu_checks_by_tag_or_proofing_language() {
     for (current, tag) in [
+        ("fi", "fi-FI"),
         ("pl", "pl-PL"),
         ("pt", "pt-BR"),
         ("it", "it-IT"),

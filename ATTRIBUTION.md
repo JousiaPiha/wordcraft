@@ -61,4 +61,21 @@ Generated-in-code art is original and has no file to list: the UI icon set (`cra
 | `docs/brand/artcraft-mark.svg` | ArtCraft Team | ArtCraft brand kit (project owner) | ArtCraft trademark, `docs/brand/LICENSE-brand.txt` | Not open source; usable unmodified only |
 | craft-fonts (optional build input, not files in this repo): BIZ UDPGothic, BIZ UDMincho, Shippori Mincho, Noto Sans CJK SC, Noto Sans Arabic | see https://github.com/storytold/craft-fonts/blob/main/ATTRIBUTION.md | embedded only when built with `CRAFT_FONTS_DIR` (all official releases) | OFL-1.1 | Japanese and Chinese UI, Japanese document fallback |
 | craft-i18n (optional build input, not files in this repo): the interface translations | see https://github.com/storytold/craft-i18n/blob/main/ATTRIBUTION.md, which credits every translator of WordCraft's former in-repo catalogs (`crates/ui-egui/src/i18n/*.tsv`, migrated at `wordcraft@806a945`) | embedded only when built with `CRAFT_I18N_DIR`, at the commit in `craft-i18n.rev` (all official releases) | MIT OR Apache-2.0 | Interface languages other than English; clean-room translations from the English interface labels |
+| `crates/proof/data/en-words.dic` | Grady Ward | Moby Hyphenator II, [Project Gutenberg #3204](https://www.gutenberg.org/ebooks/3204), transformed as documented in `crates/proof/README.md` | LicenseRef-Public-Domain | Built-in English fallback word list |
+| `crates/proof/data/en-extra.txt` | WordCraft contributors | Original English spelling supplement, from craft-libs `01315d9` | MIT OR Apache-2.0 | Built-in English fallback supplement |
 | craft-i18n Language data (optional build input, not files in this repo): the spelling word lists and hyphenation patterns (`language-data/`: the Moby Hyphenator II list and our patterns for English, `en-extra.txt`, `en-variants.txt`, `ru-extra.txt`, and the hyph-utf8 German, Polish, Portuguese and Italian patterns) | see the Language data section of https://github.com/storytold/craft-i18n/blob/main/ATTRIBUTION.md (authors, upstream sources with SHA-256, licences); moved there from `assets/hyphenation/` and `assets/spelling/` byte for byte | embedded by craft-proof (storytold/craft-libs) only when built with `CRAFT_I18N_DIR`, at the commit in `craft-i18n.rev` (all official releases) | Public Domain / CC0-1.0, MIT, BSD-3-Clause, MIT OR Apache-2.0 (per file; see NOTICE) | Spelling and hyphenation; without it English spelling falls back to an installed Hunspell English or craft-proof's built-in Moby list, and pattern hyphenation is off |
+
+| `crates/ui-egui/src/i18n/fi.tsv` | @jernbole-dot; 0.10.0 and 0.14.0 additions by @JousiaPiha with Codex | Original Finnish translation from English labels, [PR #2807](https://github.com/storytold/wordcraft/pull/2807), plus 72 labels for 0.10.0 and 107 for 0.14.0; no other product localisation copied | MIT OR Apache-2.0 | Finnish interface catalog, integrated with this fork’s embedded Voikko |
+
+## Finnish Voikko proofing
+
+Pinned source: [yongsk0066/corevoikko at beba2cd7](https://github.com/yongsk0066/corevoikko/tree/beba2cd7c0b3839b63f54c18948c4e2add318bc1).
+
+| Asset | Author | Source | License |
+| --- | --- | --- | --- |
+| `assets/voikko/mor.vfst` | Voikko project contributors | Pinned source, `libvoikko/js/dict/mor.vfst` | GPL-2.0-or-later; dictionary data |
+| `assets/voikko/autocorr.vfst` | Voikko project contributors | Pinned source, `libvoikko/js/dict/autocorr.vfst` | GPL-2.0-or-later; dictionary data |
+| `assets/voikko/COPYING-dictionary.txt` | Free Software Foundation | Pinned source, `voikko-fi/COPYING` | GPL-2.0 license text, verbatim |
+| `assets/voikko/LICENSE-libvoikko.txt` | libvoikko contributors / license authors | Pinned source, `libvoikko/LICENSE.CORE` | Upstream license notice and texts, verbatim |
+| `assets/voikko/CONTRIBUTORS.txt` | Voikko project | Pinned source, `voikko-fi/CONTRIBUTORS` | Upstream dictionary credits, verbatim |
+| `assets/voikko/README.md` | WordCraft contributors | Original provenance documentation | MIT OR Apache-2.0 |

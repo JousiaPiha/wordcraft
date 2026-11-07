@@ -104,6 +104,18 @@ pub struct ParaLayout {
 }
 
 impl ParaLayout {
+    /// Effective language from the logically ordered clusters. Indexed lookup
+    /// avoids rescanning the paragraph for every automatically hyphenated word.
+    pub fn language_at(&self, offset: usize) -> &str {
+        let at = self.clusters.partition_point(|c| c.end <= offset);
+        self.clusters
+            .get(at)
+            .filter(|c| c.start <= offset)
+            .and_then(|c| self.styles.get(c.style as usize))
+            .and_then(|s| s.rc.lang.as_deref())
+            .unwrap_or("en-US")
+    }
+
     /// The room a horizontal rule at cluster `k` is placed in, from its left edge to the end of
     /// what the line has left. A first-line indent moves that end along (Word, measured with
     /// 50 % and fixed-width rules beside floats on either side and with first-line and hanging

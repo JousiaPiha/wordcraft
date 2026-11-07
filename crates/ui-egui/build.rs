@@ -11,7 +11,7 @@
 //! - `CRAFT_I18N_DIR`, a craft-i18n checkout (storytold/craft-i18n, at the SHA in
 //!   `craft-i18n.rev`): `craft_i18n.rs` holds `CRAFT_I18N`, one (locale, shared catalog, WordCraft
 //!   catalog) entry per locale that has a `wordcraft.tsv`. Unset, or not a checkout (a warning),
-//!   it is empty and the interface is English only; with `CRAFT_I18N_REQUIRED=1` (releases) that
+//!   only the bundled Finnish fallback is embedded; with `CRAFT_I18N_REQUIRED=1` (releases) that
 //!   is an error instead. Recipe: craft-i18n's `docs/integration.md`.
 
 use std::fmt::Write as _;
@@ -44,13 +44,13 @@ fn craft_i18n() -> String {
     println!("cargo::rerun-if-env-changed=CRAFT_I18N_DIR");
     println!("cargo::rerun-if-env-changed=CRAFT_I18N_REQUIRED");
     let required = std::env::var("CRAFT_I18N_REQUIRED").is_ok_and(|v| v.trim() == "1");
-    let entries = match std::env::var_os("CRAFT_I18N_DIR").filter(|d| !d.is_empty()) {
+    let mut entries = match std::env::var_os("CRAFT_I18N_DIR").filter(|d| !d.is_empty()) {
         // Not canonicalized: on Windows that gives `\\?\C:\…`, which `include_str!` can't read.
         Some(dir) => match locales(&std::path::PathBuf::from(dir).join("locales")) {
             Ok(entries) => entries,
             Err(e) => {
                 let level = if required { "error" } else { "warning" };
-                println!("cargo::{level}=CRAFT_I18N_DIR: {e}; the interface is English only");
+                println!("cargo::{level}=CRAFT_I18N_DIR: {e}; only English and bundled Finnish are available");
                 Vec::new()
             }
         },
@@ -61,6 +61,14 @@ fn craft_i18n() -> String {
             Vec::new()
         }
     };
+    // Keep this fork's Finnish interface available until its catalog lands in craft-i18n.
+    // A supplied Finnish catalog takes precedence; other external locales are unchanged.
+    let finnish = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src/i18n/fi.tsv");
+    println!("cargo::rerun-if-changed={}", finnish.display());
+    if !entries.iter().any(|(code, ..)| code.eq_ignore_ascii_case("fi")) {
+        entries.push(("fi".to_string(), None, finnish));
+        entries.sort();
+    }
     let mut o = String::from("/// (locale, shared catalog, WordCraft's catalog), one entry per locale; `\"\"` for a missing file.\n");
     o.push_str("pub static CRAFT_I18N: &craft_i18n::Embedded = &[\n");
     for (code, shared, app) in entries {

@@ -481,6 +481,44 @@ fn empty_doc_has_one_page() {
 }
 
 #[test]
+fn voikko_caps_hyphenation_follows_document_setting() {
+    for enabled in [true, false] {
+        let mut d = Document::from_text("KISSA");
+        std::sync::Arc::make_mut(&mut d.styles).default_chr.lang = Some("fi-FI".into());
+        d.settings.auto_hyphenation = true;
+        d.settings.hyphenate_caps = enabled;
+        let l = lay(&d);
+        let Placed::Lines { para, .. } = l.pages[0].items.iter().find(|i| matches!(i, Placed::Lines { .. })).unwrap() else { panic!() };
+        let ends: Vec<_> = para.hyph_after.iter().map(|k| para.clusters[*k as usize].end).collect();
+        assert_eq!(ends, if enabled { vec![3] } else { vec![] });
+    }
+}
+
+#[test]
+fn voikko_layout_uses_finnish_breaks_and_squiggles() {
+    let mut d = Document::from_text("kissa koirra");
+    std::sync::Arc::make_mut(&mut d.styles).default_chr.lang = Some("fi-FI".into());
+    d.settings.auto_hyphenation = true;
+    let opts = LayoutOptions { proofing: true, ..Default::default() };
+    let l = layout(&d, &mut LayoutCache::new(), &opts);
+    let Placed::Lines { para, .. } = l.pages[0].items.iter().find(|i| matches!(i, Placed::Lines { .. })).unwrap() else { panic!() };
+    let ends: Vec<_> = para.hyph_after.iter().map(|k| para.clusters[*k as usize].end).collect();
+    assert!(ends.contains(&3), "kis-sa: {ends:?}");
+    assert!(para.issues.contains(&(6, 12, false)), "{:?}", para.issues);
+    assert!(!para.issues.iter().any(|&(a, _, grammar)| a == 0 && !grammar));
+
+    // A hidden English prefix must not make the visible Finnish word use English.
+    let mut d = Document::from_text("abcdekissa");
+    d.settings.auto_hyphenation = true;
+    d.format_range(&Pos::body(0, 0), &Pos::body(0, 5), &|c| c.hidden = Some(true)).unwrap();
+    d.format_range(&Pos::body(0, 5), &Pos::body(0, 10), &|c| c.lang = Some("fi-FI".into())).unwrap();
+    let l = lay(&d);
+    let Placed::Lines { para, .. } = l.pages[0].items.iter().find(|i| matches!(i, Placed::Lines { .. })).unwrap() else { panic!() };
+    let ends: Vec<_> = para.hyph_after.iter().map(|k| para.clusters[*k as usize].end).collect();
+    assert_eq!(ends, vec![8]);
+}
+
+#[test]
 fn hidden_marks_take_no_space() {
     let mut d = Document::new();
     d.body = vec![wordcraft_doc::para_block(wordcraft_doc::Paragraph::with_text("Before", Default::default()))];

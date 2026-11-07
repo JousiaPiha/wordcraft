@@ -162,7 +162,7 @@ list (author, source, license) is in ATTRIBUTION.md.
 - Application-drawn UI icons (crates/ui-egui/src/icons.rs) are original work, MIT OR Apache-2.0;
   the bundled egui font icons have the separate notice below.
 
-Rust dependencies (egui, eframe, vello_cpu, skrifa, harfrust, krilla, quick-xml, zip, image, …)
+Other Rust dependencies (egui, eframe, vello_cpu, skrifa, harfrust, krilla, quick-xml, zip, image, …)
 are permissively licensed (MIT/Apache-2.0/BSD/ISC/Zlib) and fetched through crates.io or pinned Git sources.
 The craft-pdf writer and Krilla 0.8.2 backend are pinned to storytold/craft-libs revision
 b926b5c03e256c86ca10934f58d03f628810b5b7. The backend retains its MIT OR Apache-2.0 licensing
@@ -171,6 +171,15 @@ The backend patch prevents finalization during an unwind and rejects a writer af
 cleanup. WordCraft enables only writing; PDF import and its image decoders are not enabled.
 
 No Microsoft, Adobe, Avid or Autodesk icons, images, templates or artwork are included.
+
+Finnish proofing uses the Rust corevoikko libraries by Yongseok Jang, derived
+from Voikko by Harri Pitkanen and contributors, under the MPL-1.1 option of
+their MPL-1.1 / GPL-2.0-or-later / LGPL-2.1-or-later license. Finnish dictionary
+data by the Voikko project contributors is embedded under GPL-2.0-or-later.
+These components retain their own licenses. See assets/voikko/ (in source) or
+voikko/ (in packages) for license texts, credits and pinned source information.
+Source revision: beba2cd7c0b3839b63f54c18948c4e2add318bc1
+https://github.com/yongsk0066/corevoikko/tree/beba2cd7c0b3839b63f54c18948c4e2add318bc1
 
 Bundled egui font icons
 

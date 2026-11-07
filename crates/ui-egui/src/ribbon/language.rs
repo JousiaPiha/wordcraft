@@ -1,7 +1,7 @@
 use super::{Ui, Value, WordApp, json, vec2};
 
 /// The proofing languages the Language menu offers: tag and English name (translated when drawn).
-pub(crate) const PROOFING_LANGUAGES: [(&str, &str); 16] = [
+pub(crate) const PROOFING_LANGUAGES: [(&str, &str); 17] = [
     ("en-US", "English (United States)"),
     ("en-GB", "English (United Kingdom)"),
     ("en-AU", "English (Australia)"),
@@ -14,6 +14,7 @@ pub(crate) const PROOFING_LANGUAGES: [(&str, &str); 16] = [
     ("ru-RU", "Russian"),
     ("cs-CZ", "Czech"),
     ("id-ID", "Indonesian"),
+    ("fi-FI", "Finnish"),
     ("es-ES", "Spanish (Spain)"),
     ("es-MX", "Spanish (Mexico)"),
     ("es-419", "Spanish (Latin America)"),
@@ -235,6 +236,7 @@ fn name_parts(tag: Option<&str>) -> NameParts {
         }
         // A bare language subtag ("pt", "pl"): the variant WordCraft proofs.
         None => NameParts::Whole(match wordcraft_engine::proof::ProofLang::from_tag(Some(tag)) {
+            wordcraft_engine::proof::ProofLang::Fi => "Finnish".into(),
             wordcraft_engine::proof::ProofLang::Pl => "Polish".into(),
             wordcraft_engine::proof::ProofLang::Hr => "Croatian".into(),
             wordcraft_engine::proof::ProofLang::Pt => "Portuguese (Brazil)".into(),
@@ -345,7 +347,7 @@ fn caret_char(app: &WordApp) -> wordcraft_doc::resolve::ResolvedChar {
 
 /// The language tag at the caret, resolved through the styles and the document default.
 pub(crate) fn caret_lang_tag(app: &WordApp) -> Option<String> {
-    caret_char(app).lang
+    Some(wordcraft_engine::cmd::review::caret_language(&app.session))
 }
 
 /// Is the text at the caret itself marked Do not check spelling or grammar? (`format.state`

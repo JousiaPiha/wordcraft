@@ -747,6 +747,7 @@ pub fn missing(s: &Session) -> Vec<Pack> {
     let mut out: Vec<Pack> = Vec::new();
     for tag in wanted_languages(s) {
         if proofable(&tag)
+            && wordcraft_proof::ProofLang::from_tag(Some(&tag)) != wordcraft_proof::ProofLang::Fi
             && let Some(p) = pack_for_tag(&tag, &packs)
             && !installed.iter().any(|i| i.locale == p.locale)
             && !out.iter().any(|o| o.locale == p.locale)
@@ -828,6 +829,15 @@ fn dictionary_file(tag: &str) -> Option<PathBuf> {
 /// language: tags one pack proofs share a row. `folder` is the person's own dictionaries folder;
 /// `dictionary` finds the `.dic` file proofing reads for a tag.
 pub fn your_languages_with(s: &Session, folder: Option<&str>, dictionary: &dyn Fn(&str) -> Option<PathBuf>) -> Vec<LanguageRow> {
+    your_languages_with_status(s, folder, dictionary, &|tag| wordcraft_proof::language::status(tag).available)
+}
+
+fn your_languages_with_status(
+    s: &Session,
+    folder: Option<&str>,
+    dictionary: &dyn Fn(&str) -> Option<PathBuf>,
+    builtin_available: &dyn Fn(&str) -> bool,
+) -> Vec<LanguageRow> {
     let index = available();
     let installed = installed();
     let default_tag = s
@@ -894,6 +904,9 @@ pub fn your_languages_with(s: &Session, folder: Option<&str>, dictionary: &dyn F
         let own = file.as_ref().is_some_and(|f| folder.is_some_and(|d| !d.trim().is_empty() && f.starts_with(d.trim())));
         row.proofing = if lang.is_english() {
             Proofing::BuiltIn
+        } else if lang == wordcraft_proof::ProofLang::Fi {
+            // A pack cannot repair the bundled Voikko backend if it failed to initialize.
+            if builtin_available(&tag) { Proofing::BuiltIn } else { Proofing::NotAvailable }
         } else if own {
             Proofing::OwnDictionary
         } else if installed_here {
@@ -1103,6 +1116,26 @@ impl Backend for FixedBackend {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn bundled_finnish_appears_as_built_in() {
+        let mut session = crate::Session::new(wordcraft_doc::Document::new());
+        session.prefs.default_language = Some("fi-FI".into());
+        let rows = super::your_languages_with(&session, None, &|_| None);
+        let finnish = rows.iter().find(|row| row.is_tag("fi-FI")).expect("Finnish row");
+        assert_eq!(finnish.proofing, super::Proofing::BuiltIn);
+        assert!(super::missing_dictionary(Some("fi-FI")).is_none());
+    }
+
+    #[test]
+    fn unavailable_finnish_backend_is_not_reported_as_built_in() {
+        let mut session = crate::Session::new(wordcraft_doc::Document::new());
+        session.prefs.default_language = Some("fi-FI".into());
+        let rows = super::your_languages_with_status(&session, None, &|_| None, &|_| false);
+        let finnish = rows.iter().find(|row| row.is_tag("fi-FI")).expect("Finnish row");
+        assert_eq!(finnish.proofing, super::Proofing::NotAvailable);
+        assert!(super::missing_dictionary(Some("fi-FI")).is_none());
+    }
+
     /// CP4.4 (`cargo xtask language`): a build embeds English Language data and nothing it
     /// wasn't asked to. A Language build names the locales it embeds in `CRAFT_PROOF_EMBED`
     /// (`en` alone: English only); the default embeds the carry-over locales too, until Language

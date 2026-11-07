@@ -141,6 +141,8 @@
         <RegistryValue Root="HKMU" Key="Software\Classes\Applications\wordcraft.exe\SupportedTypes" Name=".txt" Value="" Type="string" />
       </Component>
 
+      <Files Include="$(var.BinDir)\voikko\**" Directory="INSTALLFOLDER" Subdirectory="voikko" />
+
       <Component Id="WordcraftCli">
         <File Id="WordcraftCliExe" Source="$(var.BinDir)\wordcraft-cli.exe" KeyPath="yes" />
       </Component>

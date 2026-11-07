@@ -12,7 +12,11 @@ pub struct ProofRun {
 
 impl ProofRun {
     pub(super) fn of(range: std::ops::Range<usize>, rc: &ResolvedChar) -> ProofRun {
-        ProofRun { range, lang: wordcraft_proof::ProofLang::from_tag(rc.lang.as_deref()), skip: rc.no_proof || rc.hidden || rc.link.is_some() }
+        ProofRun {
+            range,
+            lang: wordcraft_proof::ProofLang::from_tag(rc.lang.as_deref()),
+            skip: rc.no_proof || rc.hidden || rc.link.is_some() || rc.del.is_some(),
+        }
     }
 }
 
@@ -43,6 +47,9 @@ pub fn paragraph_issues(
 ) -> Vec<wordcraft_proof::Issue> {
     if p.text.trim().is_empty() || p.text.len() > 100_000 {
         return Vec::new();
+    }
+    if runs.iter().any(|r| r.lang == wordcraft_proof::ProofLang::Fi) {
+        return crate::proof::issues_for_runs(p, runs, spelling, grammar, list_item);
     }
     let text = proof_text(p);
     let spans: Vec<(std::ops::Range<usize>, wordcraft_proof::ProofLang)> = runs.iter().map(|r| (r.range.clone(), r.lang)).collect();

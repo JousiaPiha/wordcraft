@@ -5,10 +5,11 @@
 //! one entry at a time, and a missing translation never fails a build, a test or a release.
 //!
 //! The catalogs live in [storytold/craft-i18n](https://github.com/storytold/craft-i18n)
-//! (`locales/<locale>/common.tsv` and `wordcraft.tsv`), not in this repository. `build.rs` embeds
-//! them from `CRAFT_I18N_DIR` (CI and releases check out the SHA in `craft-i18n.rev`); without it
-//! the build is English only. Lookup, fallback (`pt-br` → `pt` → English, app rows over shared
-//! ones), plurals, language names and locale matching are the `craft-i18n` crate's (craft-libs).
+//! (`locales/<locale>/common.tsv` and `wordcraft.tsv`). The Finnish catalog remains bundled here
+//! until it is available there. `build.rs` embeds external catalogs from `CRAFT_I18N_DIR` (CI
+//! and releases check out the SHA in `craft-i18n.rev`); without it the build offers English and
+//! Finnish. Lookup, fallback (`pt-br` → `pt` → English, app rows over shared ones), plurals,
+//! language names and locale matching are the `craft-i18n` crate's (craft-libs).
 //!
 //! The `language` setting is `auto` by default: the UI follows the operating system's language
 //! (Windows display language, macOS preferred languages, `LANG`/`LC_*` elsewhere) when there is a
@@ -70,7 +71,7 @@ pub struct LangInfo {
 
 /// The languages WordCraft offers, when their catalogs are embedded. English first: it is the
 /// fallback and the source language.
-pub static LANGUAGES: [LangInfo; 28] = [
+pub static LANGUAGES: [LangInfo; 29] = [
     LangInfo { code: "en", prefer_hans: false, editing_lang: None },
     // Simplified Chinese; `zh`, `zh-CN`, `zh-SG` and `zh-Hans-*` resolve here (the crate's matching).
     LangInfo { code: "zh-hans", prefer_hans: true, editing_lang: None },
@@ -129,6 +130,8 @@ pub static LANGUAGES: [LangInfo; 28] = [
     LangInfo { code: "ar", prefer_hans: false, editing_lang: None },
     // Slovenian; `sl`, `sl-SI` and `sl_SI.UTF-8` resolve here.
     LangInfo { code: "sl", prefer_hans: false, editing_lang: None },
+    // Finnish is bundled locally until its catalog is available from craft-i18n.
+    LangInfo { code: "fi", prefer_hans: false, editing_lang: Some("fi-FI") },
 ];
 
 /// Interface languages written right to left. Their catalogs are written in typing order and
@@ -253,7 +256,7 @@ impl Lang {
     }
 
     /// Every language the interface can be shown in: [`LANGUAGES`] in order, those with embedded
-    /// catalogs (English only in a build without craft-i18n).
+    /// catalogs (English and Finnish in a build without the external catalog checkout).
     pub fn all() -> impl Iterator<Item = Lang> {
         LANGUAGES.iter().filter_map(|l| Lang::from_code(l.code))
     }
@@ -519,14 +522,15 @@ pub(crate) fn fixture_lang(code: &'static str, source: &'static str) -> Lang {
     Lang { lang, catalogs: Some(i18n) }
 }
 
-/// For a test that needs the embedded catalogs: `false`, with a note, when none were embedded
-/// (`CRAFT_I18N_DIR` unset), so the test can skip; the interface is then English only.
+/// For tests that need the external catalogs: skip when only the local Finnish fallback
+/// is embedded (`CRAFT_I18N_DIR` unset). Finnish tests always run.
 #[cfg(test)]
 pub(crate) fn catalogs_embedded() -> bool {
-    if CRAFT_I18N.is_empty() {
-        eprintln!("skipped: built without craft-i18n (CRAFT_I18N_DIR); the interface is English only");
+    let external = CRAFT_I18N.iter().any(|(code, ..)| *code != "fi");
+    if !external {
+        eprintln!("skipped: built without external craft-i18n catalogs (CRAFT_I18N_DIR); English and Finnish are available");
     }
-    !CRAFT_I18N.is_empty()
+    external
 }
 
 #[cfg(test)]

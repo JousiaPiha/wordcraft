@@ -21,7 +21,8 @@ use comments::{
     comment_at_caret, comments_change, delete_comment, edit_comment, list_comments, nav_comment, new_comment, reply, validate_comment_id,
 };
 pub use comments::{comment_list, comment_range_at_caret};
-use proofing::{all_issues, issue_at, next_issue, suggestions, thesaurus, word_count};
+pub use proofing::caret_language;
+use proofing::{all_issues, issue_at, next_issue, proofing_status, suggestions, thesaurus, word_count};
 
 pub fn specs() -> Vec<CommandSpec> {
     vec![
@@ -83,6 +84,8 @@ pub fn specs() -> Vec<CommandSpec> {
             .params(r#"{"wrap"?: bool (default true; false stops at the end of the current story)}"#)
             .pure(),
         CommandSpec::new("review.issues", "Proofing Issues", "Review › Proofing", all_issues).pure(),
+        CommandSpec::new("review.proofingStatus", "Proofing", "Review › Language", proofing_status)
+            .params(r#"{"lang"?: "fi-FI|en-US|…"} (omit for the caret's proofing language)"#).pure(),
         CommandSpec::new("review.suggestions", "Spelling Suggestions", "Review › Proofing", suggestions).params(r#"{"pos"?: Pos}"#).pure(),
         CommandSpec::new("review.addToDictionary", "Add to Dictionary", "Review › Proofing", |s, v| {
             let w = match p::str(v, "word") {

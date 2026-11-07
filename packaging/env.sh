@@ -53,6 +53,7 @@ copy_docs() {
     if [[ -f "$ROOT/$f" ]]; then cp "$ROOT/$f" "$dest/"; fi
   done
   copy_font_licences "$dest"
+  copy_voikko_licences "$dest"
   return 0
 }
 
@@ -71,4 +72,11 @@ sha256() {
   local file="$1"
   if command -v sha256sum >/dev/null; then sha256sum "$file" | cut -d' ' -f1; else shasum -a 256 "$file" | cut -d' ' -f1; fi
   return $?
+}
+
+# The dictionary is embedded in both binaries; carry its separate licenses.
+copy_voikko_licences() {
+  local dest="$1"
+  mkdir -p "$dest/voikko"
+  cp "$ROOT/assets/voikko/README.md" "$ROOT/assets/voikko/"*.txt "$dest/voikko/"
 }
