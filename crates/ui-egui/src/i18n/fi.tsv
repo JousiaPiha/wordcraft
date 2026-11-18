@@ -186,6 +186,7 @@
 	Apply as you type	Käytä kirjoitettaessa
 	Apply formatting to:	Käytä muotoilua kohteeseen:
 	Apply to:	Käytä kohteeseen:
+	Apply to the whole document	Käytä koko asiakirjaan
 	Arabic	Arabia
 	Arch Down	Kaari alas
 	Arch Up	Kaari ylös
@@ -617,6 +618,8 @@
 	Date formats:	Päivämäärämuodot:
 	Day	Päivä
 	Decimal	Desimaali
+	Decorative Text	Koristeteksti
+	Decorative Text Styles	Koristetekstin tyylit
 	Decorative objects only add visual interest: screen readers skip them.	Koristeelliset objektit vain elävöittävät ulkoasua: näytönlukuohjelmat ohittavat ne.
 	Decrease Font Size	Pienennä fonttikokoa
 	Decrease Indent	Vähennä sisennystä
@@ -663,6 +666,9 @@
 	Developer	Kehitystyökalut
 	Diagonal	Lävistäjä
 	Diagonal Dots	Lävistäjäpisteet
+	Diagram	Kaavakuva
+	Diagram Design	Kaavakuvan rakenne
+	Diagram Styles	Kaavakuvan tyylit
 	Diamond	Vinoneliö
 	Dictate	Sanele
 	Dictionaries	Sanastot
@@ -1120,6 +1126,7 @@
 	Insert Columns to the Left	Lisää sarakkeita vasemmalle
 	Insert Columns to the Right	Lisää sarakkeita oikealle
 	Insert Date Field	Lisää päivämääräkenttä
+	Insert Diagram	Lisää kaavakuva
 	Insert Endnote	Lisää loppuviite
 	Insert Footnote	Lisää alaviite
 	Insert Hyperlink	Lisää hyperlinkki
@@ -1134,7 +1141,6 @@
 	Insert Rows Above	Lisää rivejä yläpuolelle
 	Insert Rows Below	Lisää rivejä alapuolelle
 	Insert Shapes	Lisää muotoja
-	Insert SmartArt	Lisää SmartArt
 	Insert Structure	Lisää rakenne
 	Insert Symbol	Lisää symboli
 	Insert Table	Lisää taulukko
@@ -1377,6 +1383,7 @@ template	Letter	Kirje
 	Mark as decorative	Merkitse koristeelliseksi
 	Mark grammar errors as you type	Merkitse kielioppivirheet kirjoitettaessa
 	Mark selected text as:	Merkitse valittu teksti kielellä:
+	Mark the whole document as:	Merkitse koko asiakirjan kieli:
 	Mark\nCitation	Merkitse\nlähdeviite
 	Mark\nEntry	Merkitse\nmerkintä
 	Markdown (*.md)	Markdown (*.md)
@@ -2146,9 +2153,6 @@ template	Letter	Kirje
 	Small caps	Kapiteelit
 	Small change	Pieni muutos
 	Smart quotes instead of straight quotes	Typografiset lainausmerkit suorien sijaan
-	SmartArt	SmartArt
-	SmartArt Design	SmartArt-rakenne
-	SmartArt Styles	SmartArt-tyylit
 	Smooth scrolling and zooming, and menus and buttons that fade in. Off shows every change at once.	Pehmeä vieritys ja zoomaus sekä esiin häivytettävät valikot ja painikkeet. Pois näyttää jokaisen muutoksen heti.
 	Soft Edges	Pehmeät reunat
 	Soft Glow	Pehmeä hehku
@@ -2566,8 +2570,6 @@ preview	Title	Otsikko
 	Word document	Word-asiakirja
 	Word document (*.docx)	Word-asiakirja (*.docx)
 	Word level	Sanataso
-	WordArt	WordArt
-	WordArt Styles	WordArt-tyylit
 	WordCraft	WordCraft
 	WordCraft is now the default app for Word documents.	WordCraft on nyt Word-asiakirjojen oletussovellus.
 	Words	Sanat
@@ -2799,7 +2801,8 @@ preview	Title	Otsikko
 	no equation at the caret	kohdistimen kohdalla ei ole yhtälöä
 	not editing an equation	yhtälöä ei muokata
 	only in Outline view	vain jäsennysnäkymässä
-	select a SmartArt graphic first	valitse ensin SmartArt-kuva
+	select a diagram first	valitse ensin kaavakuva
+	select a shape or decorative text first	valitse ensin muoto tai koristeteksti
 	select a chart first	valitse ensin kaavio
 	select a connector first	valitse ensin yhdysviiva
 	select a drawing canvas first	valitse ensin piirtoalusta
@@ -2813,7 +2816,8 @@ preview	Title	Otsikko
 	the Spike is empty	keräilyleikepöytä on tyhjä
 	the document is protected	asiakirja on suojattu
 	there is nothing to undo	kumottavaa ei ole
-	this SmartArt was made in another program: WordCraft shows it but can't edit it	tämä SmartArt-kuva on tehty toisessa ohjelmassa: WordCraft näyttää sen, mutta ei voi muokata sitä
+	this diagram can't be edited	tätä kaavakuvaa ei voi muokata
+	this diagram was made in another program: WordCraft shows it but can't edit it	tämä kaavakuva on tehty toisessa ohjelmassa: WordCraft näyttää sen, mutta ei voi muokata sitä
 	this chart was made in another program: WordCraft shows it but can't edit it	tämä kaavio on tehty toisessa ohjelmassa: WordCraft näyttää sen, mutta ei voi muokata sitä
 	this text box is already linked: break the link first	tämä tekstiruutu on jo linkitetty: katkaise ensin linkki
 	{language}: WordCraft doesn't check spelling or grammar in this language yet.	{language}: WordCraft ei vielä tarkista tämän kielen oikeinkirjoitusta eikä kielioppia.
