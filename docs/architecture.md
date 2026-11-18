@@ -1,9 +1,8 @@
 # WordCraft architecture
 
-> **Last reviewed:** 2026-11-07 · **Last updated:** 2026-11-07 · **Change:** minor (upstream 0.16.0 sync; Finnish interface and embedded Voikko retained)
+> **Last reviewed:** 2026-11-18 · **Last updated:** 2026-11-18 · **Change:** minor (upstream 0.18.1 sync retaining the Finnish interface and embedded Voikko); previously trivial (the hostile-parameter test now has a sibling for `file.*`, `insert.picture` and `insert.textFromFile`; previously trivial: craft-proof's row says what a build without the Language data keeps: English spelling from an installed Hunspell English or the built-in list, rule hyphenation for Bulgarian, Turkish and Russian; previously minor: proofing moved out: `wordcraft-proof` is craft-libs' `craft-proof`, its Language data craft-i18n's `language-data/` embedded from `CRAFT_I18N_DIR`; previously major: crate and layer inventory, source counts, proofing languages and module boundaries re-measured from this checkout; previously minor: `proof` is per language: English and Polish; previously major: first committed version; `plan/architecture.md` is local-only) · **Target:** Microsoft Word (Microsoft 365) for Mac 16.113.4
 
-This fork includes the Finnish interface and embedded Rust Voikko spelling, suggestions, grammar and hyphenation. New blank documents follow Suomi unless an explicit proofing default is saved; existing documents retain their languages. See [Voikko](voikko.md) and [Finnish interface](localization-fi.md). Upstream base: `02a802cb` (0.16.0), synced 2026-11-07.
-
+This fork includes the Finnish interface and embedded Rust Voikko spelling, suggestions, grammar and hyphenation. New blank documents follow Suomi unless an explicit proofing default is saved; existing documents retain their languages. See [Voikko](voikko.md) and [Finnish interface](localization-fi.md). The fork is based on upstream `6ef13b2c` (0.18.1), synced on 2026-11-18.
 
 How WordCraft is built today. The longer design notes in
 `plan/architecture.md` are gitignored and local to the original author's machine; this file is the
@@ -24,8 +23,9 @@ crate name links to its source tree.
 | L0 | [`geom`](../crates/geom/src) | 1,271 | Units (points, twips, EMU, inches, cm), rectangles and measurement parsing |
 | L1 | [`doc`](../crates/doc/src) | 23,719 | Document model: stories, paragraphs, runs, tables, sections, styles, numbering, fields, notes, comments, revisions and equations; edit primitives and bidi |
 | L1 | [`fonts`](../crates/fonts/src) | 7,088 | Font database, metrics, outlines, HarfRust shaping, Word font substitution and OpenType MATH |
-| L1 | [`metafile`](../crates/metafile/src) | 3,614 | Shared Windows Metafile parsing and drawing primitives used by format readers and renderers |
-| L1 | `crates/proof` (vendored [`craft-proof`](https://github.com/storytold/craft-libs/tree/01315d9c92b5b0e69082d35ca56099461a1efd45/crates/proof), package alias `wordcraft-proof`) | — | Proofing originated in craft-libs (CP1, 2026-11): fifteen spelling dictionaries: English (US, GB, CA), Polish, Portuguese, Italian, Croatian, Turkish, Russian, Czech, Indonesian and Spanish (Spain, Mexico, Latin America, Uruguay); language modules provide spelling, suggestions and grammar, while Bulgarian and German have hyphenation only. Its word lists and patterns are craft-i18n's `language-data/`, embedded from `CRAFT_I18N_DIR` at the commit in `craft-i18n.rev` (CI and releases set `CRAFT_I18N_REQUIRED=1`); without them English spelling falls back to an installed Hunspell English or craft-proof's built-in Moby list, and pattern hyphenation is off (Bulgarian, Turkish and Russian hyphenate by rule) |
+| L1 (external) | [`craft-metafile`](https://github.com/storytold/craft-libs/tree/main/crates/metafile) | — | WMF, EMF and EMF+ reader shared with the other Craft apps: paths, pattern fills, bitmaps and text with their clips, placed into a picture frame for the renderers |
+| L1 | [`craft-proof`](../crates/proof) (package alias `wordcraft-proof`) | — | Vendored proofing from [craft-libs `93dac78c`](https://github.com/storytold/craft-libs/tree/93dac78c93a7f1fd66e2022edeb089233b1dc45a/crates/proof), with spelling and hyphenation data from `CRAFT_I18N_DIR` at the revision in `craft-i18n.rev`. Without that checkout, English uses an installed Hunspell dictionary or the built-in Moby list, and Bulgarian, Turkish and Russian hyphenate by rule. |
+| L1 | [`wordcraft-voikko`](../crates/voikko) | — | Finnish spelling, suggestions, grammar and hyphenation from embedded Voikko and its dictionary on desktop and WebAssembly |
 | L2 | [`docbin`](../crates/docbin/src) | 8,815 | Word 97–2003 `.doc` reader (FIB, piece table, FKPs, SPRMs, stylesheet, lists, tables, notes, pictures) over a CFB container |
 | L2 | [`docx`](../crates/docx/src) | 37,376 | OOXML WordprocessingML reader/writer (Transitional and Strict), OMML, custom properties and preserved VBA parts |
 | L2 | [`formats`](../crates/formats/src) | 23,058 | TXT, Markdown, HTML, RTF, ODT and LaTeX import/export through the shared document model |
@@ -62,8 +62,9 @@ Proofing in `layout::para::paragraph_issues` is shared by page underlines and en
 
 - 821 `#[test]` functions and 10 property-test blocks: model, layout, DOCX round-trip and hostile
   input, `.doc`, formats, typing parity (`engine/src/tests/typing.rs`), bidi, i18n catalogs, UI
-  interaction (egui_kittest), MCP acceptance; `hostile_params_never_panic` runs every command with
-  junk params.
+  interaction (egui_kittest), MCP acceptance; `hostile_file_params_never_panic` runs `file.*`,
+  `insert.picture` and `insert.textFromFile` with junk params and unusable paths, held to a
+  temporary folder, and `hostile_params_never_panic` every other command with junk params.
 - `cargo xtask ci`: fmt, clippy `-D warnings`, tests, asset attribution, layering, wasm build.
 - `cargo xtask parity` regenerates [`parity-checklist.md`](parity-checklist.md); a test keeps the
   catalog percentage above a floor that only rises.
@@ -74,7 +75,9 @@ Proofing in `layout::para::paragraph_issues` is shared by page underlines and en
 
 | Date | Change | Summary |
 |---|---|---|
+| 2026-11-18 | minor | Synced upstream 0.18.1 (`6ef13b2c`) and retained the Finnish interface and embedded Voikko |
 | 2026-11-07 | minor | Synced upstream 0.16.0 (`02a802cb`); retained Finnish interface and embedded Voikko; vendored craft-proof from craft-libs `01315d9` |
+| 2026-11-05 | trivial | `hostile_file_params_never_panic` runs `file.*`, `insert.picture` and `insert.textFromFile` with junk params and unusable paths (#3719) |
 | 2026-11-02 | trivial | craft-proof's row: without the Language data English spelling falls back to an installed Hunspell English or the built-in Moby list, and only pattern hyphenation is off (#5202 review) |
 | 2026-11-01 | minor | Upstream moved `proof` out of its workspace: it became `craft-proof` in storytold/craft-libs (with its history), and the spelling and hyphenation data is craft-i18n's `language-data/` (`CRAFT_I18N_DIR`); `assets/spelling` and `assets/hyphenation` are gone |
 | 2026-11-02 | minor | Synced upstream 0.14.0 (`fd7f6621`); retained embedded Voikko, regional proofing and Finnish UI through shared catalog migration |

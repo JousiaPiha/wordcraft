@@ -1,9 +1,8 @@
 # Localization parity with Microsoft Word
 
-> **Last reviewed:** 2026-11-07 · **Last updated:** 2026-11-07 · **Change:** minor (upstream 0.16.0 sync; Finnish interface and embedded Voikko retained)
+> **Last reviewed:** 2026-11-18 · **Last updated:** 2026-11-18 · **Change:** minor (upstream 0.18.1 sync retaining the Finnish interface and embedded Voikko); previously minor (Bosnian interface: `bs` in the language list, `bs-BA` system locales, catalog in storytold/craft-i18n); previously trivial (Arabic: the Home tab's Styles gallery reads from the right, its arrows at the left (#5566); readiness unchanged); previously trivial (table sort and formulas read the Panamanian balboa's `B/.` around a number (`B/. 1,250.50`, `1,250.50 B/.`), as Word does, matched only at the ends of the text so `1/.5` stays a fraction); previously trivial (Arabic: the dialogs of the mirrored Arabic interface read right to left: label-and-field rows, tables (list columns, the Models table), tile galleries and the Add/Remove arrows follow the reading direction, through one `rtl::Table` helper that draws exactly as before in English; no ranked gap closed, readiness estimates unchanged); previously minor (Options › Language redesign: Your languages, Add a language…, Set as default; the Dictionaries folder moved from Proofing); previously trivial (Language packs: the missing-pack bar works on a fresh install and counts the caret's language); previously trivial (Language lists: every installed and available Language pack's language can be chosen in Set Proofing Language, installed ones in Review › Language and the status bar; craft-i18n.rev at 9d6d54d: region names and the Language (Region) template in 35 locales, craft-i18n#145); previously trivial (craft-i18n.rev at cde4900: rows for Options › Language, the missing-pack bar and 28 Language pack language names in 35 locales, craft-i18n#136); previously trivial (craft-proof pin: French elision suggestions first, ca-ES-valencia reads the ca-valencia pack); previously minor (Arabic `ar` interface: craft-i18n catalog, mirrored shell, font fallback, #1195; 28 languages); previously trivial (Language packs: language-packs-2 is published and pinned: 75 packs, adding Danish, German (Germany, Austria, Switzerland), Esperanto, Estonian, Persian, Croatian, Hungarian, Norwegian (Bokmål, Nynorsk), Dutch and Swedish (Sweden, Finland)); previously trivial (Language packs: language-packs-1 is published and pinned, 61 packs; the language requests it covers); previously minor (Language packs: languages beyond English install their spelling dictionary and hyphenation as a pack from File › Options › Language or the missing-pack bar; the default build embeds English Language data only) · **Target:** Microsoft Word (Microsoft 365) for Mac 16.113.4
 
-This fork includes the Finnish interface and embedded Rust Voikko spelling, suggestions, grammar and hyphenation. New blank documents follow Suomi unless an explicit proofing default is saved; existing documents retain their languages. See [Voikko](voikko.md) and [Finnish interface](localization-fi.md). Upstream base: `02a802cb` (0.16.0), synced 2026-11-07.
-
+This fork includes the Finnish interface and embedded Rust Voikko spelling, suggestions, grammar and hyphenation. New blank documents follow Suomi unless an explicit proofing default is saved; existing documents retain their languages. See [Voikko](voikko.md) and [Finnish interface](localization-fi.md). The fork is based on upstream `6ef13b2c` (0.18.1), synced on 2026-11-18.
 
 Interface languages, script support and proofing per language. How translation works (adding a
 language, the embedded catalogs): `crates/ui-egui/src/i18n.rs`. The catalogs, their format and
@@ -24,14 +23,16 @@ native-speaker review (human).
 
 ## What WordCraft ships (measured)
 
-- **28 interface languages**: English plus `zh-hans`, `zh-hant`, `ja`, Korean `ko` (#1216), `uk`, `es`, `pt-br`,
-  Serbian `sr`/`sr-latn` (#250), Estonian `et`, Turkish `tr`, Russian `ru`, Italian `it` (#594), German `de` (#574), Polish `pl`, Czech `cs`, Hungarian `hu`, French `fr`, Bulgarian `bg`, Vietnamese `vi` (#1434), Swedish `sv` (#1219), Croatian `hr` (#1271), Romanian `ro`, Slovenian `sl`, Dutch `nl`, Danish `da` (#2722) and Arabic `ar` (#1195). Catalogs have 2,061–2,730 entries
-  each; Polish has every key of every other catalog, including the built-in style names and the equation gallery, except the citation style names only Hungarian, Bulgarian, Swedish, Romanian and Slovenian translate so far. A missing translation falls back to English and never fails a test or
+- **30 interface languages**: English plus `zh-hans`, `zh-hant`, `ja`, Korean `ko` (#1216), `uk`, `es`, `pt-br`,
+  Serbian `sr`/`sr-latn` (#250), Estonian `et`, Turkish `tr`, Russian `ru`, Italian `it` (#594), German `de` (#574), Polish `pl`, Czech `cs`, Hungarian `hu`, French `fr`, Bulgarian `bg`, Vietnamese `vi` (#1434), Swedish `sv` (#1219), Croatian `hr` (#1271), Romanian `ro`, Slovenian `sl`, Dutch `nl`, Danish `da` (#2722), Arabic `ar` (#1195), Bosnian `bs` and Finnish `fi`.
+  Polish covers the built-in style names and the equation gallery. Hungarian, Bulgarian,
+  Swedish, Romanian and Slovenian translate citation style names. A missing translation falls back to English and never fails a test or
   build. `cargo xtask i18n-report`, part of `cargo xtask ci`, prints per language the interface
   strings its catalog lacks: everything the interface audit saw looked up, the ribbon tabs, command
   labels and ribbon locations, the File › Home greetings, disabled-control reasons and the equation
   gallery. The catalogs are embedded at build time from craft-i18n (`CRAFT_I18N_DIR`, the commit
-  in `craft-i18n.rev`; a build without it is English only), and craft-i18n's checker applies the
+  in `craft-i18n.rev`). English and the local Finnish catalog are available without that checkout.
+  The craft-i18n checker applies the
   format checks to every language alike (rows parse, no duplicate keys, placeholders match the
   English, plural forms, ellipses); the report also lists rows the crate skips and strings kept in English. Font tests check that the bundled faces have a glyph for each catalog's letters.
   Tests of the lookup code (English fallback, contexts, placeholder templates, built-in style names,
@@ -45,7 +46,7 @@ native-speaker review (human).
   Read Aloud) aren't wrapped in `tl!` yet, so they show in English in every
   language: the true share of visible strings is **~93–95%** (estimated).
 - Pending PRs: Norwegian Bokmål (#208) and Nynorsk (#210), Hebrew with RTL (#20). Arabic UI landed (#1195).
-- **Proofing: English, Polish, Portuguese, Italian, Russian, Czech, Indonesian and Spanish**, chosen per run from its language (`w:lang`, resolved through
+- **Proofing: English, Polish, Portuguese, Italian, Russian, Czech, Indonesian, Spanish and Finnish**, chosen per run from its language (`w:lang`, resolved through
   the styles; Review › Language and the status bar set it: a short list, plus Set Proofing
   Language… for every built-in language and every installed or available Language pack language, and Set As Default for the document and future blank documents). Languages without proofing tools get
   no spelling or grammar marks (as in Word without the language's tools) instead of being flagged
@@ -65,7 +66,7 @@ shared items below.
 | Simplified Chinese (Mandarin) | zh-hans | 929 entries; 98% of extracted, ~95% of visible | most; newer panes English | CJK ✅, IME ✅; Windows UI font fixed (#248); interface font chain covers every catalog character, installed CJK font after the embedded ones when it doesn't, PingFang found on macOS 12 (#486); font list by Chinese names (宋体, 微软雅黑, #505); word count counts each Han ideograph and kana as a word, not punctuation (#4547); no vertical text | no | partial | 3–5 |
 | Spanish | es | ~930; 98% / ~95% | most | Latin ✅ | no | partial | 1–2 |
 | Hindi | hi | 0 | ❌ | Devanagari shaping via HarfRust, untested; no hyphenation | no | none | 4–6 |
-| Arabic | ar | ~2,730 entries (craft-i18n `locales/ar/wordcraft.tsv`); 98% / ~95% | most; newer panes English | shaping, joining, lam-alef, bidi ✅ (#207); mirrored UI ✅ (#1195; dialogs, tables and galleries read right to left); Arabic UI font fallback; no kashida; no proofing | no | partial | 2–4 (review + kashida/proofing elsewhere) |
+| Arabic | ar | ~2,730 entries (craft-i18n `locales/ar/wordcraft.tsv`); 98% / ~95% | most; newer panes English | shaping, joining, lam-alef, bidi ✅ (#207); letters join across a change of formatting and past hidden or deleted text ✅ (#4093); mirrored UI ✅ (#1195; dialogs, tables and galleries read right to left); Arabic UI font fallback; no kashida; no proofing | no | partial | 2–4 (review + kashida/proofing elsewhere) |
 | French | fr | 2,615 entries (complete catalog) | all | Latin ✅ | no | partial (spelling and suggestions from the French Language pack, elided forms first: `Jadore` → `J'adore`; no grammar marks) | 1–2 (grammar) |
 | Portuguese | pt-br (pt-PT none) | ~930; 98% / ~95% (pt-BR) | most | Latin ✅ | no | partial | 2–4 (pt-BR finish + pt-PT) |
 | Indonesian | id | 0 | ❌ | Latin ✅ | no | none | 3–4 |
@@ -75,8 +76,8 @@ shared items below.
 | Vietnamese | vi | 2,448 entries; every key of the reference catalogs (#1434); 98% of extracted, ~95% of visible | most | Latin ✅ | no | partial | 0–1 (review) |
 | Romanian | ro | 2,674 entries; every key of the other catalogs; AI-assisted draft | most | Latin ✅ (ă â î ș ț in the bundled faces) | no | partial | 0–1 (review) |
 
-Other shipped languages: **21** — Traditional Chinese (`zh-hant`), Ukrainian (`uk`), Serbian
-Cyrillic and Latin (`sr`, `sr-latn`, #250), Estonian (`et`), Turkish (`tr`), Russian (`ru`), Italian (`it`, #594), Polish (`pl`), Czech (`cs`), Hungarian (`hu`), French (`fr`), Bulgarian (`bg`), Vietnamese (`vi`, #1434), Swedish (`sv`, #1219), Croatian (`hr`, #1271), Romanian (`ro`), Slovenian (`sl`), Dutch (`nl`), Danish (`da`, #2722) and Finnish (`fi`, #2740/#2807), all partial.
+Other shipped languages include Traditional Chinese (`zh-hant`), Ukrainian (`uk`), Serbian
+Cyrillic and Latin (`sr`, `sr-latn`, #250), Estonian (`et`), Turkish (`tr`), Russian (`ru`), Italian (`it`, #594), Polish (`pl`), Czech (`cs`), Hungarian (`hu`), French (`fr`), Bulgarian (`bg`), Vietnamese (`vi`, #1434), Swedish (`sv`, #1219), Croatian (`hr`, #1271), Romanian (`ro`), Slovenian (`sl`), Dutch (`nl`), Danish (`da`, #2722), Bosnian (`bs`) and Finnish (`fi`, #2740/#2807), all partial.
 Swedish (`sv-SE` and `sv-FI` system locales, `{"value":"sv"}`) has 2,504 entries. Counts use
 count-neutral wording (`{words} ord`: the noun is the same in the singular and the plural). The
 catalog is an AI-assisted draft whose terminology and running app were reviewed by a native
@@ -87,7 +88,7 @@ mainland glyph shapes (說, 這, 為, 戶), so an installed Traditional Chinese 
 macOS, Microsoft JhengHei on Windows, Noto Sans CJK TC (or Source Han Sans TW) on Linux; without one, and on the web, the
 Simplified Chinese order stays.
 Croatian (`hr-HR` system locales, `{"value":"hr"}`) has 2,507 entries: every key of the reference catalog, built-in style names and the equation gallery. Counts use count-neutral wording (`Riječi: 21`) because Croatian numerals take three noun forms. The catalog was written and checked by a native speaker; Croatian proofing is a separate change.
-Finnish (`fi-FI` system locales, `{"value":"fi"}`) has 2,750 entries, covering every key in the other current catalogs. The original translation by @jernbole-dot comes from [PR #2807](https://github.com/storytold/wordcraft/pull/2807), with 72 translations added for 0.10.0. Choosing Suomi also selects embedded Voikko for new blank documents; existing documents and explicit proofing defaults retain their language. Terminology and verification: [localization-fi.md](localization-fi.md).
+Finnish (`fi-FI` system locales, `{"value":"fi"}`) includes the original translation by @jernbole-dot from [PR #2807](https://github.com/storytold/wordcraft/pull/2807) and later catalog updates. Choosing Suomi selects embedded Voikko for new blank documents. Existing documents and saved proofing defaults retain their languages. See [Finnish terminology and verification](localization-fi.md).
 
 Estonian uses the existing fonts, follows `et-EE` system locales, and is available in Options or
 through `ui.language` with `{"value":"et"}`. Its 1,307 entries cover the existing interface catalog.
@@ -102,6 +103,7 @@ hyphenated by the Bulgarian syllable rules (#826); Bulgarian spelling and gramma
 Slovenian (`sl-SI` system locales, `{"value":"sl"}`) has 2,614 entries: every key of every other
 catalog. Counts use count-neutral wording (`Besede: 21`); terminology: [`localization-sl.md`](localization-sl.md).
 Slovenian proofing is not included.
+Bosnian (`bs-BA` system locales, `{"value":"bs"}`) is Latin script; Cyrillic Bosnian stays in English. Its craft-i18n catalog has 2,508 WordCraft entries plus the shared catalog, with `one|few|other` plural rows. The catalog is an AI-assisted draft not yet reviewed by a native speaker; Bosnian proofing is not included; terminology: [`localization-bs.md`](localization-bs.md).
 Hungarian follows `hu-HU` system locales and `{"value":"hu"}`, with a complete catalog of 2,419 entries: every key of
 the Russian catalog, built-in style names shown translated, plus the citation style names. Hungarian proofing is not included; terminology and conventions:
 [`localization-hu.md`](localization-hu.md).
@@ -210,9 +212,9 @@ pinned pack index and installed through the font store into `<font store>/langua
   Persian, Esperanto); Mongolian and Thai stay hidden. Install reads it,
   or a test index named in `CRAFT_LANGUAGE_PACK_INDEX`. The default build still keeps the
   carry-over data embedded (English, plus the German, Polish, Portuguese and Italian patterns and
-  `ru-extra`) until craft-proof's default embed becomes English only. A Language build embeds English plus the locales named in `CRAFT_PROOF_EMBED`
-  (`en` alone: English only); `cargo xtask language` checks nothing else is embedded. The web
-  build is English only.
+  `ru-extra`). `CRAFT_PROOF_EMBED` selects the shared language data to embed in addition to
+  English, and `cargo xtask language` checks that configuration. The fork embeds its Finnish
+  Voikko dictionary separately on desktop and web.
 - Lithuanian [#4707](https://github.com/storytold/wordcraft/issues/4707), Romanian [#3438](https://github.com/storytold/wordcraft/issues/3438), Catalan [#2895](https://github.com/storytold/wordcraft/issues/2895)/[#4947](https://github.com/storytold/wordcraft/issues/4947), French [#1325](https://github.com/storytold/wordcraft/issues/1325), Greek [#2561](https://github.com/storytold/wordcraft/issues/2561), Slovak [#3806](https://github.com/storytold/wordcraft/issues/3806), Serbian [#4968](https://github.com/storytold/wordcraft/issues/4968) and Latvian [#4438](https://github.com/storytold/wordcraft/issues/4438) are available as Language packs, with Polish, Portuguese, Italian, Russian, Czech, Spanish, Bulgarian, Bosnian, Slovenian and the rest; language-packs-2 (75 packs) adds Dutch [#4145](https://github.com/storytold/wordcraft/issues/4145)/[#2505](https://github.com/storytold/wordcraft/issues/2505), German (Germany, Austria, Switzerland), Danish, Persian, Esperanto, Estonian, Croatian, Hungarian, Norwegian and Swedish through craft-proof's flag-based compounding. Mongolian (slow suggestions) and Thai (word segmentation) wait on craft-proof; Basque, Ukrainian and Uyghur are excluded on licence grounds. A language craft-proof has no rules of its own for
   (Lithuanian, Romanian, Dutch…) is spell-checked from its pack alone (`ProofLang::Pack`: the
   shared affix engine with default tuning, the pack's hyphenation, no grammar rules).
@@ -288,7 +290,11 @@ WordCraft keeps 2,54 cm).
 
 | Date | Change | Summary |
 |---|---|---|
+| 2026-11-18 | minor | Synced upstream 0.18.1 (`6ef13b2c`) and retained the Finnish interface and embedded Voikko |
 | 2026-11-07 | minor | Synced upstream 0.16.0 (`02a802cb`); retained Finnish interface and embedded Voikko; vendored craft-proof from craft-libs `01315d9` |
+| 2026-10-29 | minor | Bosnian interface (`bs`, Latin script): listed in `LANGUAGES`, `bs-BA` system locales, saved preference and bundled-font tests; catalog in storytold/craft-i18n (`locales/bs/wordcraft.tsv`); no Bosnian proofing |
+| 2026-11-06 | trivial | Arabic: the Home tab's Styles gallery reads from the right: Normal is the rightmost tile and the scroll arrows and More sit at the gallery's left end, as the rest of the mirrored ribbon (#5566); left to right is unchanged; regression test `the_styles_gallery_reads_from_the_right_in_a_right_to_left_interface` |
+| 2026-11-05 | trivial | Arabic letters join across a change of formatting and past hidden or deleted text (#4093) |
 | 2026-11-04 | trivial | Table sort and formulas read the Panamanian balboa's `B/.` around a number (`B/. 1,250.50`, `1,250.50 B/.`), as Word does; `B/.1,250.50` and `B/ 1,250.50` stay text, matching Word 16.0, and the sign is matched only at the ends of the text, so `1/.5` is unchanged |
 | 2026-11-04 | trivial | craft-i18n.rev at 9d6d54d (craft-i18n#145): 69 region names and the `{language} ({region})` template (full-width in ja, ko, zh) in 35 locales, AI-assisted without native-speaker review |
 | 2026-11-04 | trivial | craft-i18n.rev at cde4900 (craft-i18n#136): translated rows for Options › Language (Your languages, Add a language…, Set as default, Dictionary files), the missing-pack bar and 28 Language pack language names in 35 locales, AI-assisted without native-speaker review |

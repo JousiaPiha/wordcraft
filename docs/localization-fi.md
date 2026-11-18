@@ -1,24 +1,21 @@
 # Finnish interface
 
-> **Last reviewed:** 2026-11-07 · **Last updated:** 2026-11-07 · **Change:** minor (Finnish interface integrated with embedded Voikko) · **Target:** WordCraft 0.16.0
+> **Last reviewed:** 2026-11-18 · **Last updated:** 2026-11-18 · **Change:** minor (retained the Finnish interface in the upstream sync) · **Target:** WordCraft 0.18.1
 
-## Upstream 0.16.0 sync (2026-11-07)
+## Upstream 0.18.1 sync (2026-11-18)
 
-Synced upstream `02a802cb` while preserving embedded Rust Voikko and the Finnish
-interface. Upstream now loads translations from the pinned `craft-i18n` checkout;
-this fork also embeds its Finnish catalog as a fallback. Release builds use
-`CRAFT_I18N_DIR` at the revision in `craft-i18n.rev` for the other interface languages.
-Finnish remains available without that optional checkout. Mixed Finnish text keeps
-the upstream English and Spanish regional proofing variants.
+The fork incorporates upstream `6ef13b2c`. The build uses `CRAFT_I18N_DIR` at the
+revision in `craft-i18n.rev` for the shared interface catalogs and embeds this
+fork's Finnish catalog when the checkout has none. Finnish remains available
+without the optional checkout.
 
-
-Choose **File › Options › Interface language › Suomi**, or follow a Finnish system display
+Choose **Suomi** under **File › Options › Language › Interface language**, or follow a Finnish system display
 language (`fi-FI`, `fi_FI.UTF-8`). The catalog code is `fi`; `ui.language` with `{"value":"fi"}`
 selects it explicitly, and `WORDCRAFT_LANGUAGE=fi-FI` does the same for a headless screenshot or a
 launch while the preference is `auto`. The choice is saved with the other interface settings.
 Document text, command ids, CLI/MCP/control responses and file paths do not change.
 
-`crates/ui-egui/src/i18n/fi.tsv` has 2,857 translation entries plus language-name metadata. The local catalog covers the current WordCraft labels found in the shared catalog and the UI source scan. It is written
+`crates/ui-egui/src/i18n/fi.tsv` holds the translation entries and language-name metadata. It is written
 from the meaning of the English labels; no other product's Finnish interface, string table or
 terminology database was consulted, and no other catalog was used as a source. The contribution is
 an original translation by @jernbole-dot (#2740), pending native-speaker review. Placeholders, `\n` breaks in ribbon labels
@@ -87,6 +84,7 @@ passed. This includes the rendered-interface translation audit.
 
 | Date | Change | Summary |
 |---|---|---|
+| 2026-11-18 | minor | Synced upstream 0.18.1 (`6ef13b2c`) and retained the bundled Finnish catalog and Finnish editing-language default |
 | 2026-11-07 | minor | Synced upstream 0.16.0 (`02a802cb`); retained Finnish interface and embedded Voikko with craft-proof vendored from craft-libs `01315d9` |
 | 2026-11-02 | minor | Synced upstream 0.14.0 (`fd7f6621`); retained embedded Voikko, regional proofing and Finnish UI through shared catalog migration |
 | 2026-10-22 | minor | Merged PR #2807 into the 0.10.0 Voikko build; 72 current-label translations, 2,750 entries, blank-document proofing and preference-precedence checks |

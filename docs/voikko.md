@@ -1,6 +1,59 @@
 # Finnish proofing with Voikko
 
-> **Last reviewed:** 2026-11-07 · **Last updated:** 2026-11-07 · **Change:** minor (upstream 0.16.0 sync retaining Finnish proofing)
+> **Last reviewed:** 2026-11-18 · **Last updated:** 2026-11-18 · **Change:** minor (upstream 0.18.1 sync retaining Finnish proofing)
+
+## Upstream 0.18.1 sync (2026-11-18)
+
+The fork incorporates upstream `6ef13b2c` and updates the vendored `craft-proof`
+to the upstream craft-libs revision `93dac78c`. The Finnish interface and Voikko
+dictionary remain embedded on desktop and WebAssembly. The pinned `craft-i18n`
+checkout supplies other interface catalogs and shared language data.
+
+Linux x86_64 validation on 2026-11-18 passed all nine `cargo +1.95.0 xtask ci`
+gates: formatting, strict Clippy, workspace tests, translation audit, language
+data, doctests, asset attribution, layering and WebAssembly. The workspace suite
+passed 5,887 tests with no failures and 10 existing ignored tests; all three
+pagination tests that failed in the 0.16.0 build now pass. Finnish spelling,
+suggestions, grammar, hyphenation, interface defaults and saved preferences pass.
+The translation audit reports 133 missing Finnish strings, which fall back to
+English, and 21 intentionally retained English strings.
+
+Tests and release builds use both the pinned `craft-i18n` data and the same
+`craft-fonts` revision as CI (`b076417b5880bd4154bd22f00695b1d28c6bea83`). Without
+that font input, the strict Arabic and CJK interface glyph tests fail; no tests
+were skipped or relaxed to pass this sync. The first release build also passed
+Finnish proofing and DOCX save/reopen checks. The final installer is validated
+separately after packaging.
+
+### Building 0.18.1 on Apple Silicon
+
+Use native ARM64 Rust and Xcode Command Line Tools. Run these commands from the
+root of the synced repository to embed the same shared language data and fonts
+as CI. The font checkout supplies the glyphs used by the interface coverage tests.
+
+```sh
+rustup toolchain install 1.95.0 --profile minimal
+rustup target add --toolchain 1.95.0 aarch64-apple-darwin
+i18n_dir="$(mktemp -d "${TMPDIR:-/tmp}/wordcraft-i18n.XXXXXX")"
+fonts_dir="$(mktemp -d "${TMPDIR:-/tmp}/wordcraft-fonts.XXXXXX")"
+git clone https://github.com/storytold/craft-i18n.git "$i18n_dir"
+git -C "$i18n_dir" checkout --detach "$(cat craft-i18n.rev)"
+git clone https://github.com/storytold/craft-fonts.git "$fonts_dir"
+git -C "$fonts_dir" checkout --detach b076417b5880bd4154bd22f00695b1d28c6bea83
+export RUSTUP_TOOLCHAIN=1.95.0
+export CRAFT_I18N_DIR="$i18n_dir" CRAFT_I18N_REQUIRED=1
+export CRAFT_FONTS_DIR="$fonts_dir" CRAFT_FONTS_REQUIRED=1
+cargo test --locked -p wordcraft-voikko -p craft-proof
+cargo test --locked -p wordcraft-engine -p wordcraft-ui-egui finnish
+cargo run --locked -p wordcraft-voikko --example smoke
+MACOS_SIGN_IDENTITY=- bash packaging/macos/package.sh --arch aarch64
+hdiutil verify dist/release/wordcraft-0.18.1-macos-aarch64.dmg
+```
+
+The outputs are `dist/release/wordcraft-0.18.1-macos-aarch64.dmg` and
+`dist/release/wordcraft-cli-0.18.1-macos-aarch64.zip`. The packaging script verifies
+the app's ad-hoc signature before and after placing it inside the DMG. Native
+acceptance for this version requires the build and manual checks below.
 
 ## Upstream 0.16.0 sync (2026-11-07)
 
@@ -26,33 +79,6 @@ The three failing tests are in `wordcraft-layout`:
 - `a_float_anchored_on_a_line_a_footnote_pushes_on_is_drawn_on_the_next_page`
 - `a_float_anchored_on_a_line_widow_control_takes_on_is_drawn_on_the_next_page`
 - `a_footnote_pushed_on_by_a_float_coming_back_is_on_its_reference_s_page_only`
-
-### Building 0.16.0 on Apple Silicon
-
-Use the fork's `main` branch with native ARM64 Rust and Xcode Command Line Tools.
-The commands below run from the WordCraft repository root. They embed the pinned
-shared language data as well as the fork's Finnish interface and Voikko data:
-
-```sh
-rustup toolchain install 1.95.0 --profile minimal
-rustup target add --toolchain 1.95.0 aarch64-apple-darwin
-i18n_dir="$(mktemp -d "${TMPDIR:-/tmp}/wordcraft-i18n.XXXXXX")"
-git clone https://github.com/storytold/craft-i18n.git "$i18n_dir"
-git -C "$i18n_dir" checkout --detach "$(cat craft-i18n.rev)"
-export RUSTUP_TOOLCHAIN=1.95.0
-export CRAFT_I18N_DIR="$i18n_dir" CRAFT_I18N_REQUIRED=1
-cargo test --locked -p wordcraft-voikko -p craft-proof
-cargo test --locked -p wordcraft-engine -p wordcraft-ui-egui finnish
-cargo run --locked -p wordcraft-voikko --example smoke
-MACOS_SIGN_IDENTITY=- bash packaging/macos/package.sh --arch aarch64
-hdiutil verify dist/release/wordcraft-0.16.0-macos-aarch64.dmg
-```
-
-The outputs are `dist/release/wordcraft-0.16.0-macos-aarch64.dmg` and
-`dist/release/wordcraft-cli-0.16.0-macos-aarch64.zip`. The packaging script verifies
-the app's ad-hoc signature before and after placing it inside the DMG. These
-personal test builds are not notarized. This 0.16.0 port still needs a native Mac
-build and the manual checks below; the older Mac results do not validate it.
 
 ## Upstream 0.14.0 validation (2026-11-02)
 
@@ -335,6 +361,7 @@ precedence of an explicitly saved proofing default.
 
 | Date | Change | Summary |
 | --- | --- | --- |
+| 2026-11-18 | minor | Synced upstream 0.18.1 (`6ef13b2c`) and refreshed vendored craft-proof from craft-libs `93dac78c` with Finnish Voikko support |
 | 2026-11-07 | minor | Synced upstream 0.16.0 (`02a802cb`); retained Finnish interface and embedded Voikko with craft-proof vendored from craft-libs `01315d9` |
 | 2026-11-02 | minor | Synced upstream 0.14.0 (`fd7f6621`); retained embedded Voikko, regional proofing and Finnish UI through shared catalog migration |
 | 2026-10-14 | minor | Synced upstream 0.7.0; retained Finnish and integrated Italian/Croatian routing and upstream spelling optimization |
