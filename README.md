@@ -69,7 +69,7 @@
   <a href="#license-and-credits">License and credits</a>
 </p>
 
-This fork of WordCraft 0.18.1 includes the **Finnish interface (Suomi)** and embedded
+This fork of WordCraft 0.19.1 (upstream release `5d658dc0`) includes the **Finnish interface (Suomi)** and embedded
 Voikko spelling, suggestions, grammar and hyphenation. Choose **Suomi** in **File ›
 Options › Language** to make Finnish the default for new blank documents. Existing
 documents keep their languages, and a saved proofing default takes precedence.

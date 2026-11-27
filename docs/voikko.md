@@ -1,6 +1,42 @@
 # Finnish proofing with Voikko
 
-> **Last reviewed:** 2026-11-18 · **Last updated:** 2026-11-18 · **Change:** minor (upstream 0.18.1 sync retaining Finnish proofing)
+> **Last reviewed:** 2026-11-27 · **Last updated:** 2026-11-27 · **Change:** minor (upstream 0.19.1 sync retaining Finnish proofing)
+
+## Upstream 0.19.1 sync (2026-11-27)
+
+The fork incorporates the November 25 WordCraft v0.19.1 release (`5d658dc0`).
+The release uses the same craft-libs revision (`93dac78c`) as the previous sync.
+The Finnish interface and Voikko dictionary are embedded on desktop and WebAssembly.
+
+### Building 0.19.1 on Apple Silicon
+
+Use native ARM64 Rust and Xcode Command Line Tools. Run these commands from the
+root of the synced repository to embed the same shared language data and fonts
+as CI. The font checkout supplies the glyphs used by the interface coverage tests.
+
+```sh
+rustup toolchain install 1.95.0 --profile minimal
+rustup target add --toolchain 1.95.0 aarch64-apple-darwin
+i18n_dir="$(mktemp -d "${TMPDIR:-/tmp}/wordcraft-i18n.XXXXXX")"
+fonts_dir="$(mktemp -d "${TMPDIR:-/tmp}/wordcraft-fonts.XXXXXX")"
+git clone https://github.com/storytold/craft-i18n.git "$i18n_dir"
+git -C "$i18n_dir" checkout --detach "$(cat craft-i18n.rev)"
+git clone https://github.com/storytold/craft-fonts.git "$fonts_dir"
+git -C "$fonts_dir" checkout --detach b076417b5880bd4154bd22f00695b1d28c6bea83
+export RUSTUP_TOOLCHAIN=1.95.0
+export CRAFT_I18N_DIR="$i18n_dir" CRAFT_I18N_REQUIRED=1
+export CRAFT_FONTS_DIR="$fonts_dir" CRAFT_FONTS_REQUIRED=1
+cargo test --locked -p wordcraft-voikko -p craft-proof
+cargo test --locked -p wordcraft-engine -p wordcraft-ui-egui finnish
+cargo run --locked -p wordcraft-voikko --example smoke
+MACOS_SIGN_IDENTITY=- bash packaging/macos/package.sh --arch aarch64
+hdiutil verify dist/release/wordcraft-0.19.1-macos-aarch64.dmg
+```
+
+The outputs are `dist/release/wordcraft-0.19.1-macos-aarch64.dmg` and
+`dist/release/wordcraft-cli-0.19.1-macos-aarch64.zip`. The packaging script verifies
+the app's ad-hoc signature before and after placing it inside the DMG. Native
+acceptance for this version requires the build and manual checks below.
 
 ## Upstream 0.18.1 sync (2026-11-18)
 
@@ -24,36 +60,6 @@ that font input, the strict Arabic and CJK interface glyph tests fail; no tests
 were skipped or relaxed to pass this sync. The first release build also passed
 Finnish proofing and DOCX save/reopen checks. The final installer is validated
 separately after packaging.
-
-### Building 0.18.1 on Apple Silicon
-
-Use native ARM64 Rust and Xcode Command Line Tools. Run these commands from the
-root of the synced repository to embed the same shared language data and fonts
-as CI. The font checkout supplies the glyphs used by the interface coverage tests.
-
-```sh
-rustup toolchain install 1.95.0 --profile minimal
-rustup target add --toolchain 1.95.0 aarch64-apple-darwin
-i18n_dir="$(mktemp -d "${TMPDIR:-/tmp}/wordcraft-i18n.XXXXXX")"
-fonts_dir="$(mktemp -d "${TMPDIR:-/tmp}/wordcraft-fonts.XXXXXX")"
-git clone https://github.com/storytold/craft-i18n.git "$i18n_dir"
-git -C "$i18n_dir" checkout --detach "$(cat craft-i18n.rev)"
-git clone https://github.com/storytold/craft-fonts.git "$fonts_dir"
-git -C "$fonts_dir" checkout --detach b076417b5880bd4154bd22f00695b1d28c6bea83
-export RUSTUP_TOOLCHAIN=1.95.0
-export CRAFT_I18N_DIR="$i18n_dir" CRAFT_I18N_REQUIRED=1
-export CRAFT_FONTS_DIR="$fonts_dir" CRAFT_FONTS_REQUIRED=1
-cargo test --locked -p wordcraft-voikko -p craft-proof
-cargo test --locked -p wordcraft-engine -p wordcraft-ui-egui finnish
-cargo run --locked -p wordcraft-voikko --example smoke
-MACOS_SIGN_IDENTITY=- bash packaging/macos/package.sh --arch aarch64
-hdiutil verify dist/release/wordcraft-0.18.1-macos-aarch64.dmg
-```
-
-The outputs are `dist/release/wordcraft-0.18.1-macos-aarch64.dmg` and
-`dist/release/wordcraft-cli-0.18.1-macos-aarch64.zip`. The packaging script verifies
-the app's ad-hoc signature before and after placing it inside the DMG. Native
-acceptance for this version requires the build and manual checks below.
 
 ## Upstream 0.16.0 sync (2026-11-07)
 
@@ -361,6 +367,7 @@ precedence of an explicitly saved proofing default.
 
 | Date | Change | Summary |
 | --- | --- | --- |
+| 2026-11-27 | minor | Synced upstream release v0.19.1 (`5d658dc0`) with the Finnish interface and embedded Voikko |
 | 2026-11-18 | minor | Synced upstream 0.18.1 (`6ef13b2c`) and refreshed vendored craft-proof from craft-libs `93dac78c` with Finnish Voikko support |
 | 2026-11-07 | minor | Synced upstream 0.16.0 (`02a802cb`); retained Finnish interface and embedded Voikko with craft-proof vendored from craft-libs `01315d9` |
 | 2026-11-02 | minor | Synced upstream 0.14.0 (`fd7f6621`); retained embedded Voikko, regional proofing and Finnish UI through shared catalog migration |
