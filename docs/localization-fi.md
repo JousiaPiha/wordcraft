@@ -1,10 +1,10 @@
 # Finnish interface
 
-> **Last reviewed:** 2026-11-18 · **Last updated:** 2026-11-18 · **Change:** minor (retained the Finnish interface in the upstream sync) · **Target:** WordCraft 0.18.1
+> **Last reviewed:** 2026-11-27 · **Last updated:** 2026-11-27 · **Change:** minor (retained the Finnish interface in the upstream sync) · **Target:** WordCraft 0.19.1
 
-## Upstream 0.18.1 sync (2026-11-18)
+## Upstream 0.19.1 sync (2026-11-27)
 
-The fork incorporates upstream `6ef13b2c`. The build uses `CRAFT_I18N_DIR` at the
+The fork incorporates upstream release `5d658dc0`. The build uses `CRAFT_I18N_DIR` at the
 revision in `craft-i18n.rev` for the shared interface catalogs and embeds this
 fork's Finnish catalog when the checkout has none. Finnish remains available
 without the optional checkout.
@@ -84,6 +84,7 @@ passed. This includes the rendered-interface translation audit.
 
 | Date | Change | Summary |
 |---|---|---|
+| 2026-11-27 | minor | Synced upstream release v0.19.1 (`5d658dc0`) with the Finnish interface and embedded Voikko |
 | 2026-11-18 | minor | Synced upstream 0.18.1 (`6ef13b2c`) and retained the bundled Finnish catalog and Finnish editing-language default |
 | 2026-11-07 | minor | Synced upstream 0.16.0 (`02a802cb`); retained Finnish interface and embedded Voikko with craft-proof vendored from craft-libs `01315d9` |
 | 2026-11-02 | minor | Synced upstream 0.14.0 (`fd7f6621`); retained embedded Voikko, regional proofing and Finnish UI through shared catalog migration |

@@ -1,8 +1,8 @@
 # WordCraft architecture
 
-> **Last reviewed:** 2026-11-18 · **Last updated:** 2026-11-18 · **Change:** minor (upstream 0.18.1 sync retaining the Finnish interface and embedded Voikko); previously trivial (the hostile-parameter test now has a sibling for `file.*`, `insert.picture` and `insert.textFromFile`; previously trivial: craft-proof's row says what a build without the Language data keeps: English spelling from an installed Hunspell English or the built-in list, rule hyphenation for Bulgarian, Turkish and Russian; previously minor: proofing moved out: `wordcraft-proof` is craft-libs' `craft-proof`, its Language data craft-i18n's `language-data/` embedded from `CRAFT_I18N_DIR`; previously major: crate and layer inventory, source counts, proofing languages and module boundaries re-measured from this checkout; previously minor: `proof` is per language: English and Polish; previously major: first committed version; `plan/architecture.md` is local-only) · **Target:** Microsoft Word (Microsoft 365) for Mac 16.113.4
+> **Last reviewed:** 2026-11-27 · **Last updated:** 2026-11-27 · **Change:** minor (upstream 0.19.1 sync retaining the Finnish interface and embedded Voikko); previously trivial (the hostile-parameter test now has a sibling for `file.*`, `insert.picture` and `insert.textFromFile`; previously trivial: craft-proof's row says what a build without the Language data keeps: English spelling from an installed Hunspell English or the built-in list, rule hyphenation for Bulgarian, Turkish and Russian; previously minor: proofing moved out: `wordcraft-proof` is craft-libs' `craft-proof`, its Language data craft-i18n's `language-data/` embedded from `CRAFT_I18N_DIR`; previously major: crate and layer inventory, source counts, proofing languages and module boundaries re-measured from this checkout; previously minor: `proof` is per language: English and Polish; previously major: first committed version; `plan/architecture.md` is local-only) · **Target:** Microsoft Word (Microsoft 365) for Mac 16.113.4
 
-This fork includes the Finnish interface and embedded Rust Voikko spelling, suggestions, grammar and hyphenation. New blank documents follow Suomi unless an explicit proofing default is saved; existing documents retain their languages. See [Voikko](voikko.md) and [Finnish interface](localization-fi.md). The fork is based on upstream `6ef13b2c` (0.18.1), synced on 2026-11-18.
+This fork includes the Finnish interface and embedded Rust Voikko spelling, suggestions, grammar and hyphenation. New blank documents follow Suomi unless an explicit proofing default is saved; existing documents retain their languages. See [Voikko](voikko.md) and [Finnish interface](localization-fi.md). This fork synced upstream release v0.19.1 (`5d658dc0`) on 2026-11-27.
 
 How WordCraft is built today. The longer design notes in
 `plan/architecture.md` are gitignored and local to the original author's machine; this file is the
@@ -75,6 +75,7 @@ Proofing in `layout::para::paragraph_issues` is shared by page underlines and en
 
 | Date | Change | Summary |
 |---|---|---|
+| 2026-11-27 | minor | Synced upstream release v0.19.1 (`5d658dc0`) with the Finnish interface and embedded Voikko |
 | 2026-11-18 | minor | Synced upstream 0.18.1 (`6ef13b2c`) and retained the Finnish interface and embedded Voikko |
 | 2026-11-07 | minor | Synced upstream 0.16.0 (`02a802cb`); retained Finnish interface and embedded Voikko; vendored craft-proof from craft-libs `01315d9` |
 | 2026-11-05 | trivial | `hostile_file_params_never_panic` runs `file.*`, `insert.picture` and `insert.textFromFile` with junk params and unusable paths (#3719) |
